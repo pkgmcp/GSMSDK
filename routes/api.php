@@ -26,6 +26,11 @@ return function (Router $router) {
             $router->get('/brands', [FirmwareController::class, 'brands']);
             $router->get('/models/{brand}', [FirmwareController::class, 'models']);
             
+            // Google/Pixel specific endpoints
+            $router->get('/google/factory', [FirmwareController::class, 'googleFactoryImages']);
+            $router->get('/google/ota', [FirmwareController::class, 'googleOtaUpdates']);
+            $router->get('/google/models', [FirmwareController::class, 'googleModels']);
+            
             // Admin routes
             $router->post('/', [FirmwareController::class, 'create']);
             $router->put('/{id}', [FirmwareController::class, 'update']);

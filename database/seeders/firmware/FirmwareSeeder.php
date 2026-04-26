@@ -96,118 +96,104 @@ class FirmwareSeeder extends Seeder {
                 $f->state(['frp_remove_supported' => true, 'imei_repair_supported' => true]);
             });
         
-        // Google/Pixel devices
+        // Google/Pixel devices - comprehensive factory firmware
         $this->factory(\GSMSDK\Models\Firmware::class)
-            ->count(8)
+            ->count(25)
             ->create(function (FirmwareFactory $f) {
-                $f->state([
-                    'brand' => 'google', 
-                    'model' => $f->faker()->randomElement(['Pixel 8', 'Pixel 8 Pro', 'Pixel 7', 'Pixel 7a', 'Pixel 6a']),
+                $models = [
+                    'Pixel 8 Pro', 'Pixel 8', 'Pixel 8a',
+                    'Pixel 7 Pro', 'Pixel 7', 'Pixel 7a',
+                    'Pixel 6 Pro', 'Pixel 6', 'Pixel 6a',
+                    'Pixel 5', 'Pixel 5a',
+                    'Pixel 4 XL', 'Pixel 4',
+                    'Pixel 3 XL', 'Pixel 3', 'Pixel 3a', 'Pixel 3a XL',
+                    'Pixel 2 XL', 'Pixel 2',
+                    'Pixel XL', 'Pixel',
+                    'Pixel Fold', 'Pixel Tablet', 'Pixel Watch', 'Pixel Watch 2'
+                ];
+                $model = $f->faker()->randomElement($models);
+                $version = $f->faker()->randomElement(['15.0', '14.0', '13.0', '12.0', '11.0']);
+                $region = $f->faker()->randomElement(['WW', null]);
+                $build = 'SD' . strtoupper($f->faker()->bothify('##??##'));
+                
+                return [
+                    'brand' => 'google',
+                    'model' => $model,
+                    'region' => $region,
+                    'version' => $version,
+                    'build_number' => $build,
+                    'security_patch' => $f->faker()->randomElement(['2025-12-01', '2025-11-01', '2025-10-01']),
+                    'android_version' => match(substr($version, 0, 2)) {
+                        '15' => '15', '14' => '14', '13' => '13', '12' => '12', '11' => '11', default => '14'
+                    },
                     'firmware_type' => 'official',
-                    'region' => null
-                ]);
+                    'file_name' => 'google_' . str_replace(' ', '_', strtolower($model)) . '_' . $version . '_' . $build . '_factory_' . strtolower($region ?? 'ww') . '.zip',
+                    'file_size' => $f->faker()->randomElement(['2.1GB', '2.3GB', '2.5GB', '2.8GB', '3.0GB']),
+                    'file_hash' => $f->faker()->sha256(),
+                    'download_url' => 'https://dl.google.com/dl/android/aosp/' . strtolower(str_replace(' ', '_', $model)) . '/' . $version . '/' . $build . '/' . strtolower($region ?? 'ww') . '/' . 'factory_' . strtolower(str_replace(' ', '_', $model)) . '_' . $version . '_' . $build . '_' . strtolower($region ?? 'ww') . '.zip',
+                    'changelog' => '+ Factory image for ' . $model . ' ' . $version . "\n" .
+                                   '+ Security patch: December 2025' . "\n" .
+                                   '+ Android ' . substr($version, 0, 2) . ' update' . "\n" .
+                                   '+ Bug fixes and stability improvements' . "\n" .
+                                   '+ OTA update available',
+                    'status' => 'active',
+                    'download_count' => $f->faker()->numberBetween(10000, 100000),
+                    'rating' => $f->faker()->numberBetween(4, 5),
+                    'is_popular' => true,
+                    'is_recommended' => true,
+                    'imei_repair_supported' => false,
+                    'flash_mode_supported' => true,
+                    'adb_mode_supported' => true,
+                    'frp_remove_supported' => false,
+                    'camera_sms_working' => true,
+                    'ota_supported' => true,
+                    'factory_reset_safe' => true,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
             });
         
-        // Motorola devices
+        // Google/Pixel OTA updates
         $this->factory(\GSMSDK\Models\Firmware::class)
-            ->count(8)
+            ->count(15)
             ->create(function (FirmwareFactory $f) {
-                $f->state([
-                    'brand' => 'motorola',
-                    'model' => $f->faker()->randomElement(['Edge 40', 'Razr 40', 'Moto G84', 'G Power 2023']),
-                    'firmware_type' => 'official'
-                ]);
-            });
-        
-        // ASUS devices
-        $this->factory(\GSMSDK\Models\Firmware::class)
-            ->count(6)
-            ->create(function (FirmwareFactory $f) {
-                $f->state([
-                    'brand' => 'asus',
-                    'model' => $f->faker()->randomElement(['Zenfone 10', 'ROG Phone 7', 'Zenfone 11']),
-                    'firmware_type' => 'official'
-                ]);
-            });
-        
-        // Sony devices
-        $this->factory(\GSMSDK\Models\Firmware::class)
-            ->count(6)
-            ->create(function (FirmwareFactory $f) {
-                $f->state([
-                    'brand' => 'sony',
-                    'model' => $f->faker()->randomElement(['Xperia 1 V', 'Xperia 10 V', 'Xperia 5 V']),
+                $models = ['Pixel 8 Pro', 'Pixel 8', 'Pixel 7 Pro', 'Pixel 7', 'Pixel 6 Pro', 'Pixel 6'];
+                $model = $f->faker()->randomElement($models);
+                $versions = ['15.0.1', '15.0.2', '14.0.5', '14.0.6', '13.0.8', '13.0.9'];
+                $version = $f->faker()->randomElement($versions);
+                
+                return [
+                    'brand' => 'google',
+                    'model' => $model,
+                    'region' => null,
+                    'version' => $version,
+                    'build_number' => 'SD' . strtoupper($f->faker()->bothify('##??##')),
+                    'security_patch' => '2025-12-01',
+                    'android_version' => substr($version, 0, 2),
                     'firmware_type' => 'official',
-                    'region' => null
-                ]);
-            });
-        
-        // Huawei devices
-        $this->factory(\GSMSDK\Models\Firmware::class)
-            ->count(6)
-            ->create(function (FirmwareFactory $f) {
-                $f->state([
-                    'brand' => 'huawei',
-                    'model' => $f->faker()->randomElement(['P60', 'Mate 50', 'Mate 60', 'P70']),
-                    'firmware_type' => 'official',
-                    'region' => 'CN'
-                ]);
-            });
-        
-        // OnePlus devices
-        $this->factory(\GSMSDK\Models\Firmware::class)
-            ->count(6)
-            ->create(function (FirmwareFactory $f) {
-                $f->state([
-                    'brand' => 'oneplus',
-                    'model' => $f->faker()->randomElement(['11', '11R', 'Nord 3', '12', 'Open']),
-                    'firmware_type' => 'official',
-                    'region' => null
-                ]);
-            });
-        
-        // OPPO devices
-        $this->factory(\GSMSDK\Models\Firmware::class)
-            ->count(6)
-            ->create(function (FirmwareFactory $f) {
-                $f->state([
-                    'brand' => 'oppo',
-                    'model' => $f->faker()->randomElement(['Find X6', 'Reno 10', 'Reno 11', 'A1', 'A78']),
-                    'firmware_type' => 'official'
-                ]);
-            });
-        
-        // Vivo devices
-        $this->factory(\GSMSDK\Models\Firmware::class)
-            ->count(6)
-            ->create(function (FirmwareFactory $f) {
-                $f->state([
-                    'brand' => 'vivo',
-                    'model' => $f->faker()->randomElement(['X90', 'X90 Pro', 'V29', 'V30', 'Y100']),
-                    'firmware_type' => 'official'
-                ]);
-            });
-        
-        // LG devices
-        $this->factory(\GSMSDK\Models\Firmware::class)
-            ->count(5)
-            ->create(function (FirmwareFactory $f) {
-                $f->state([
-                    'brand' => 'lg',
-                    'model' => $f->faker()->randomElement(['Wing', 'Velvet 5G', 'G8X', 'V60', 'K40']),
-                    'firmware_type' => 'official'
-                ]);
-            });
-        
-        // Nokia devices
-        $this->factory(\GSMSDK\Models\Firmware::class)
-            ->count(5)
-            ->create(function (FirmwareFactory $f) {
-                $f->state([
-                    'brand' => 'nokia',
-                    'model' => $f->faker()->randomElement(['G50', 'X30', 'G42', 'C32', 'G22']),
-                    'firmware_type' => 'official'
-                ]);
+                    'file_name' => 'ota_' . str_replace(' ', '_', strtolower($model)) . '_' . $version . '_update.zip',
+                    'file_size' => $f->faker()->randomElement(['150MB', '180MB', '200MB', '250MB']),
+                    'file_hash' => $f->faker()->sha256(),
+                    'download_url' => 'https://dl.google.com/dl/android/ota/' . strtolower(str_replace(' ', '_', $model)) . '/' . $version . '/ota_update.zip',
+                    'changelog' => '+ OTA update ' . $version . "\n" .
+                                   '+ Security improvements' . "\n" .
+                                   '+ Bug fixes' . "\n" .
+                                   '+ Incremental update',
+                    'status' => 'active',
+                    'download_count' => $f->faker()->numberBetween(50000, 200000),
+                    'rating' => $f->faker()->numberBetween(4, 5),
+                    'is_popular' => true,
+                    'is_recommended' => true,
+                    'imei_repair_supported' => false,
+                    'flash_mode_supported' => false,
+                    'adb_mode_supported' => true,
+                    'frp_remove_supported' => false,
+                    'camera_sms_working' => true,
+                    'ota_supported' => true,
+                    'factory_reset_safe' => true,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
             });
         
         // General firmware entries (various brands/models)
@@ -232,7 +218,7 @@ class FirmwareSeeder extends Seeder {
             ['aristotle', 'xiaomi', 'Xiaomi 13T'],
             ['zircon', 'xiaomi', 'Redmi Note 13 Pro+ 5G'],
             ['xaga', 'xiaomi', 'Redmi Note 11T Pro / Redmi Note 11T Pro+ / POCO X4 GT'],
-            ['air', 'xiaomi', 'Redmi 13R 5G / Redmi 13C 5G / POCO M6 5G'],
+            ['air', 'xiaomi', 'Redmi 13R 5G / Redmi 13C 5G'],
             ['moon', 'xiaomi', 'Redmi 13'],
             ['tides', 'xiaomi', 'Redmi 13'],
             ['pond', 'xiaomi', 'Redmi 14C / POCO C75'],

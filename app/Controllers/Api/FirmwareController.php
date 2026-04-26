@@ -13,7 +13,7 @@ use GSMSDK\HTTP\Response;
 /**
  * Firmware Controller
  * 
- * Enhanced with IMEI repair, flash mode support, and all major brands
+ * Enhanced with IMEI repair, flash mode, and all major brands
  */
 class FirmwareController {
     protected Application $app;
@@ -310,6 +310,89 @@ class FirmwareController {
             'android_version' => $androidVersion,
             'count' => count($firmware),
             'firmware' => array_map(fn($f) => $f->getDetails(), $firmware)
+        ]);
+    }
+    
+    /**
+     * Get Google factory images
+     */
+    public function googleFactoryImages(Request $request): Response {
+        $brand = 'google';
+        $models = $request->get('models', []);
+        $versions = $request->get('versions', []);
+        
+        $query = Firmware::query()
+            ->where('brand', $brand)
+            ->where('status', 'active')
+            ->where('firmware_type', 'official')
+            ->where('flash_mode_supported', true);
+        
+        if (!empty($models)) {
+            $query->whereIn('model', (array)$models);
+        }
+        
+        if (!empty($versions)) {
+            $query->whereIn('version', (array)$versions);
+        }
+        
+        $firmware = $query->orderBy('version', 'desc')->get();
+        
+        return Response::json([
+            'success' => true,
+            'brand' => $brand,
+            'type' => 'factory_images',
+            'count' => count($firmware),
+            'firmware' => array_map(fn($f) => $f->getDetails(), $firmware)
+        ]);
+    }
+    
+    /**
+     * Get Google OTA updates
+     */
+    public function googleOtaUpdates(Request $request): Response {
+        $brand = 'google';
+        $models = $request->get('models', []);
+        
+        $query = Firmware::query()
+            ->where('brand', $brand)
+            ->where('status', 'active')
+            ->where('firmware_type', 'official')
+            ->where('ota_supported', true);
+        
+        if (!empty($models)) {
+            $query->whereIn('model', (array)$models);
+        }
+        
+        $firmware = $query->orderBy('version', 'desc')->get();
+        
+        return Response::json([
+            'success' => true,
+            'brand' => $brand,
+            'type' => 'ota_updates',
+            'count' => count($firmware),
+            'firmware' => array_map(fn($f) => $f->getDetails(), $firmware)
+        ]);
+    }
+    
+    /**
+     * Get Google device models
+     */
+    public function googleModels(Request $request): Response {
+        $models = Firmware::query()
+            ->select('model')
+            ->where('brand', 'google')
+            ->where('status', 'active')
+            ->distinct()
+            ->orderBy('model')
+            ->get()
+            ->pluck('model')
+            ->toArray();
+        
+        return Response::json([
+            'success' => true,
+            'brand' => 'google',
+            'count' => count($models),
+            'models' => $models
         ]);
     }
     
