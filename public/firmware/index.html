@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GSMSDK Firmware Hub</title>
+    <link rel="stylesheet" href="/css/firmware.css">
+    <style>
+        :root {
+            --bg-primary: #0f0f0f;
+            --bg-secondary: #1a1a1a;
+            --bg-tertiary: #2a2a2a;
+            --text-primary: #e0e0e0;
+            --text-secondary: #a0a0a0;
+            --accent-blue: #00a8ff;
+            --accent-green: #00d97e;
+            --accent-red: #ff4757;
+            --accent-yellow: #ffd32a;
+            --border-color: #333;
+            --success: #2ed573;
+            --warning: #ffa502;
+            --danger: #ff4757;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+            border-bottom: 2px solid var(--border-color);
+            padding: 1.5rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-green));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: white;
+        }
+
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Search Bar */
+        .search-section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 1rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            outline: none;
+        }
+
+        .search-input:focus {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(0, 168, 255, 0.1);
+        }
+
+        .search-btn {
+            padding: 1rem 2rem;
+            background: linear-gradient(135deg, var(--accent-blue), #0077cc);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .search-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 168, 255, 0.3);
+        }
+
+        .filters {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-select {
+            padding: 0.75rem 1rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            cursor: pointer;
+            outline: none;
+        }
+
+        .filter-select:focus {
+            border-color: var(--accent-blue);
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            border-color: var(--accent-blue);
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .stat-icon {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 1rem;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-green));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-green));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+        }
+
+        /* Firmware Grid */
+        .firmware-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .firmware-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .firmware-card:hover {
+            border-color: var(--accent-blue);
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-green));
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-title {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .card-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-official {
+            background: rgba(46, 213, 115, 0.2);
+            color: var(--success);
+        }
+
+        .badge-beta {
+            background: rgba(255, 211, 42, 0.2);
+            color: var(--accent-yellow);
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        .device-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .device-brand {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .device-model {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .version-info {
+            background: var(--bg-tertiary);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .version-number {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: var(--accent-blue);
+        }
+
+        .build-number {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            background: var(--bg-tertiary);
+            border-top: 1px solid var(--border-color);
+        }
+
+        .download-btn {
+            padding: 0.75rem 1.5rem;
+            background: linear-gradient(135deg, var(--accent-blue), #0077cc);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 168, 255, 0.3);
+        }
+
+        .downloads-count {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        /* Loader */
+        .loader {
+            display: flex;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--border-color);
+            border-top-color: var(--accent-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--text-secondary);
+        }
+
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .search-box {
+                flex-direction: column;
+            }
+
+            .firmware-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="logo">
+            <div class="logo-icon">📱</div>
+            <div>
+                <h1>GSMSDK Firmware Hub</h1>
+                <p>Official firmware downloads for all devices</p>
+            </div>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <!-- Search Section -->
+        <section class="search-section">
+            <div class="search-box">
+                <input type="text" class="search-input" id="searchInput" placeholder="Search firmware by brand, model, or version...">
+                <button class="search-btn" onclick="searchFirmware()">Search</button>
+            </div>
+            <div class="filters">
+                <select class="filter-select" id="brandFilter" onchange="filterFirmware()">
+                    <option value="">All Brands</option>
+                </select>
+                <select class="filter-select" id="typeFilter" onchange="filterFirmware()">
+                    <option value="">All Types</option>
+                    <option value="official">Official</option>
+                    <option value="beta">Beta</option>
+                </select>
+                <select class="filter-select" id="sortFilter" onchange="sortFirmware()">
+                    <option value="latest">Latest First</option>
+                    <option value="popular">Most Popular</option>
+                    <option value="downloads">Most Downloads</option>
+                </select>
+            </div>
+        </section>
+
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">📱</div>
+                <div class="stat-value" id="statTotal">0</div>
+                <div class="stat-label">Total Firmware</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">🏆</div>
+                <div class="stat-value" id="statPopular">0</div>
+                <div class="stat-label">Popular</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">⬇️</div>
+                <div class="stat-value" id="statDownloads">0</div>
+                <div class="stat-label">Total Downloads</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">🌍</div>
+                <div class="stat-value" id="statBrands">0</div>
+                <div class="stat-label">Brands</div>
+            </div>
+        </div>
+
+        <!-- Firmware Grid -->
+        <div class="firmware-grid" id="firmwareGrid">
+            <div class="loader">
+                <div class="spinner"></div>
+            </div>
+        </div>
+
+        <!-- Load More -->
+        <div class="text-center" style="margin: 2rem 0;">
+            <button class="search-btn" onclick="loadMore()" id="loadMoreBtn" style="display: none;">Load More</button>
+        </div>
+    </div>
+
+    <script>
+        let allFirmware = [];
+        let displayedFirmware = [];
+        let page = 1;
+        const perPage = 12;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadFirmware();
+            loadStats();
+            loadBrands();
+        });
+
+        // Load firmware from API
+        async function loadFirmware(filters = {}) {
+            try {
+                let url = '/api/firmware?limit=100';
+                
+                if (filters.brand) url += `&brand=${filters.brand}`;
+                if (filters.type) url += `&type=${filters.type}`;
+                if (filters.search) url += `&q=${filters.search}`;
+
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                allFirmware = data.firmware || [];
+                displayedFirmware = [];
+                page = 1;
+                
+                renderFirmware();
+                updateLoadMoreBtn();
+            } catch (error) {
+                console.error('Error loading firmware:', error);
+                document.getElementById('firmwareGrid').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📄</div>
+                        <p>Failed to load firmware. Please try again.</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Render firmware cards
+        function renderFirmware() {
+            const grid = document.getElementById('firmwareGrid');
+            const start = 0;
+            const end = page * perPage;
+            const toDisplay = allFirmware.slice(start, end);
+
+            if (start === 0) {
+                grid.innerHTML = '';
+            }
+
+            if (toDisplay.length === 0) {
+                if (grid.innerHTML === '') {
+                    grid.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">🔍</div>
+                            <p>No firmware found matching your criteria.</p>
+                        </div>
+                    `;
+                }
+                return;
+            }
+
+            toDisplay.forEach(fw => {
+                const card = createFirmwareCard(fw);
+                grid.appendChild(card);
+            });
+
+            displayedFirmware = toDisplay;
+            updateLoadMoreBtn();
+        }
+
+        // Create firmware card HTML
+        function createFirmwareCard(fw) {
+            const div = document.createElement('div');
+            div.className = 'firmware-card';
+            
+            div.innerHTML = `
+                <div class="card-header">
+                    <span class="card-title">${fw.brand} ${fw.model}</span>
+                    <span class="card-badge badge-${fw.firmware_type}">${fw.firmware_type}</span>
+                </div>
+                <div class="card-body">
+                    <div class="device-info">
+                        <div>
+                            <div class="device-brand">${fw.brand}</div>
+                            <div class="device-model">${fw.model}</div>
+                        </div>
+                    </div>
+                    <div class="version-info">
+                        <div class="version-number">Version ${fw.version}</div>
+                        ${fw.build_number ? `<div class="build-number">Build: ${fw.build_number}</div>` : ''}
+                        ${fw.region ? `<div class="build-number">Region: ${fw.region}</div>` : ''}
+                    </div>
+                    ${fw.file_size ? `<p><strong>Size:</strong> ${fw.file_size}</p>` : ''}
+                    ${fw.changelog ? `<p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem;">${fw.changelog.substring(0, 100)}...</p>` : ''}
+                </div>
+                <div class="card-footer">
+                    <button class="download-btn" onclick="downloadFirmware(${fw.id}, '${fw.file_name}')">
+                        <span>⬇️</span>
+                        <span>Download</span>
+                    </button>
+                    <span class="downloads-count">${fw.download_count.toLocaleString()} downloads</span>
+                </div>
+            `;
+            
+            return div;
+        }
+
+        // Download firmware
+        async function downloadFirmware(id, fileName) {
+            try {
+                const response = await fetch(`/api/firmware/download/${id}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Trigger actual download
+                    window.open(data.download_url, '_blank');
+                    
+                    // Show toast notification
+                    showToast('Download started!', `Downloading ${fileName}`);
+                } else {
+                    showToast('Error', data.error || 'Download failed', 'error');
+                }
+            } catch (error) {
+                showToast('Error', 'Failed to start download', 'error');
+            }
+        }
+
+        // Show toast notification
+        function showToast(title, message, type = 'success') {
+            // Remove existing toasts
+            document.querySelectorAll('.toast').forEach(t => t.remove());
+            
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.style.cssText = `
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                background: var(--bg-tertiary);
+                border: 1px solid ${type === 'error' ? 'var(--danger)' : 'var(--success)'};
+                border-radius: 12px;
+                padding: 1rem 1.5rem;
+                z-index: 1000;
+                animation: slideIn 0.3s ease;
+            `;
+            toast.innerHTML = `
+                <strong>${title}</strong>
+                <p style="margin: 0.25rem 0 0; font-size: 0.85rem; color: var(--text-secondary);">${message}</p>
+            `;
+            
+            document.body.appendChild(toast);
+            
+            setTimeout(() => toast.remove(), 5000);
+        }
+
+        // Load more firmware
+        function loadMore() {
+            page++;
+            renderFirmware();
+        }
+
+        // Update load more button
+        function updateLoadMoreBtn() {
+            const btn = document.getElementById('loadMoreBtn');
+            if (displayedFirmware.length < allFirmware.length) {
+                btn.style.display = 'inline-block';
+            } else {
+                btn.style.display = 'none';
+            }
+        }
+
+        // Search firmware
+        function searchFirmware() {
+            const query = document.getElementById('searchInput').value;
+            loadFirmware({ search: query });
+        }
+
+        // Filter firmware
+        function filterFirmware() {
+            const brand = document.getElementById('brandFilter').value;
+            const type = document.getElementById('typeFilter').value;
+            loadFirmware({ brand, type });
+        }
+
+        // Sort firmware
+        function sortFirmware() {
+            const sort = document.getElementById('sortFilter').value;
+            
+            if (sort === 'latest') {
+                allFirmware.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            } else if (sort === 'popular') {
+                allFirmware.sort((a, b) => b.is_popular - a.is_popular);
+            } else if (sort === 'downloads') {
+                allFirmware.sort((a, b) => b.download_count - a.download_count);
+            }
+            
+            renderFirmware();
+        }
+
+        // Load brands
+        async function loadBrands() {
+            try {
+                const response = await fetch('/api/firmware/brands');
+                const data = await response.json();
+                
+                const select = document.getElementById('brandFilter');
+                data.brands.forEach(brand => {
+                    const option = document.createElement('option');
+                    option.value = brand;
+                    option.textContent = brand.charAt(0).toUpperCase() + brand.slice(1);
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading brands:', error);
+            }
+        }
+
+        // Load stats
+        async function loadStats() {
+            try {
+                // Mock stats for now
+                document.getElementById('statTotal').textContent = '150+';
+                document.getElementById('statPopular').textContent = '25';
+                document.getElementById('statDownloads').textContent = '500K+';
+                document.getElementById('statBrands').textContent = '12';
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        // Add CSS animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from { opacity: 0; transform: translateX(20px); }
+                to { opacity: 1; transform: translateX(0); }
+            }
+            .toast-success { border-color: var(--success) !important; }
+            .toast-error { border-color: var(--danger) !important; }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>
