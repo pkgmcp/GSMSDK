@@ -18,11 +18,11 @@ use Stringable;
  *
  * @implements ContainerInterface<mixed>
  */
-readonly class Application implements ContainerInterface, Stringable
+class Application implements ContainerInterface, Stringable
 {
     use Macroable;
 
-    /** @var array<string, callable|mixed> Registered services */
+    /** @var array<string, callable> Registered services */
     private array $services = [];
 
     /** @var array<string, mixed> Cached instantiated services */
@@ -134,8 +134,8 @@ readonly class Application implements ContainerInterface, Stringable
     }
 
     public function has(string $id): bool { return isset($this->services[$id]); }
-    public function set(string $id, callable|mixed $factory): void { $this->services[$id] = $factory; unset($this->resolved[$id]); }
-    public function bind(string $interface, string $concrete): void { $this->services[$interface] = fn() => new $concrete($this); }
+    public function set(string $id, callable $factory): void { $this->services[$id] = $factory; unset($this->resolved[$id]); }
+    public function bind(string $abstract, callable|object $concrete): void { $this->services[$interface] = fn() => new $concrete($this); }
     public function singleton(string $id, callable $factory): void
     {
         $this->services[$id] = function () use ($factory, $id) {

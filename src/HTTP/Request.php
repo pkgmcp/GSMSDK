@@ -29,7 +29,7 @@ class Request
         $this->files = $_FILES;
         $this->cookies = $_COOKIE;
         $this->method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-        $this->uri = $this->getUri();
+        $this->uri = $_SERVER["REQUEST_URI"] ?? "/";
         $this->parseHeaders();
     }
 
@@ -41,11 +41,6 @@ class Request
                 $this->headers[$header] = $value;
             }
         }
-    }
-
-    private function getUri(): string
-    {
-        return parse_url($this->server['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
     }
 
     public function getMethod(): string

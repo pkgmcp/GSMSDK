@@ -288,4 +288,47 @@ class Response implements ResponseInterface
     {
         return $this->body;
     }
+
+    /**
+     * Render a view
+     */
+    public function view(string $name, array $data = []): self
+    {
+        $viewPath = $this->findView($name);
+        if (!$viewPath) {
+            $this->status(404);
+            $this->body = "View not found: {$name}";
+            return $this;
+        }
+        
+        extract($data);
+        ob_start();
+        include $viewPath;
+        $this->body = ob_get_clean();
+        $this->header('Content-Type', 'text/html; charset=UTF-8');
+        return $this;
+    }
+
+    /**
+     * Send JSON response
+     */
+
+    /**
+     * Find view file
+     */
+    private function findView(string $name): ?string
+    {
+        $paths = [
+            dirname(__DIR__, 2) . "/resources/views/{$name}.gsm.php",
+            dirname(__DIR__, 2) . "/resources/views/{$name}.php",
+            dirname(__DIR__, 2) . "/public/views/{$name}.php",
+        ];
+        
+        foreach ($paths as $path) {
+            if (file_exists($path)) {
+                return $path;
+            }
+        }
+        return null;
+    }
 }

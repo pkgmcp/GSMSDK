@@ -1,4 +1,5 @@
 <?php
+
 /**
  * GSMSDK Front Controller
  *
@@ -6,9 +7,6 @@
  */
 
 use GSMSDK\Core\MvcApplication;
-use GSMSDK\Core\View;
-
-declare(strict_types=1);
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
@@ -39,66 +37,60 @@ $app = new MvcApplication([
 ]);
 
 // Define routes
-$app->get('/', 'HomeController@index');
-$app->get('/dashboard', function ($request, $response) {
+$app->routeGet('/', 'HomeController@index');
+$app->routeGet('/dashboard', function ($request, $response) {
     $data = [
         'title' => 'Dashboard',
-        'version' => $response->app->version(),
+        'version' => '3.0.0',
         'features' => [
             'MVC Framework',
             'GSM Templating Engine',
             'ADB Integration',
-            'Fastboot Integration',
-            'Desktop Apps',
-            'Mobile Apps',
-        ],
-        'devices' => [
-            ['id' => 'emulator-5554', 'type' => 'emulator', 'state' => 'device'],
-        ],
+            'Fastboot Support',
+            'Premium Upload System',
+            'Subscription Management'
+        ]
     ];
-    $html = $response->app->view('home', $data);
-    $response->status(200)
-             ->header('Content-Type', 'text/html')
-             ->body($html)
-             ->send();
+    return $response->view('admin/dashboard', $data);
 });
 
-// API routes
-$app->get('/api/status', 'Api\StatusController@index');
-$app->get('/api/devices', 'DeviceController@index');
-$app->post('/api/devices/{id}/shell', 'DeviceController@shell');
-$app->post('/api/devices/{id}/install', 'DeviceController@install');
-
-// Device routes
-$app->get('/devices', function ($request, $response) {
+$app->routeGet('/upload', function ($request, $response) {
     $data = [
-        'title' => 'Devices',
-        'devices' => [
-            ['id' => 'emulator-5554', 'type' => 'emulator', 'state' => 'device'],
-        ],
+        'title' => 'Premium Upload Center',
+        'totalFiles' => 156,
+        'totalDownloads' => 15420,
+        'premiumUsers' => 892,
+        'revenue' => 45230,
+        'files' => [
+            ['name' => 'firmware_xiaomi_redmi.zip', 'size' => '245 MB', 'category' => 'firmware', 'downloads' => 1240],
+            ['name' => 'tool_fastboot_util.zip', 'size' => '12 MB', 'category' => 'tools', 'downloads' => 856],
+            ['name' => 'guide_imei_repair.pdf', 'size' => '3 MB', 'category' => 'documentation', 'downloads' => 2341],
+        ]
     ];
-    $html = $response->app->view('home', $data);
-    $response->json(['devices' => $data['devices']]);
+    return $response->view('upload/index', $data);
 });
 
-// Flash routes
-$app->get('/flash', function ($request, $response) {
-    $data = [
-        'title' => 'Flash Tool',
-        'partitions' => ['boot', 'system', 'vendor', 'recovery'],
-    ];
-    $html = $response->app->view('home', $data);
-    $response->status(200)->body($html)->send();
+$app->routeGet('/firmware', function ($request, $response) {
+    return $response->view('admin/firmware', ['title' => 'Firmware Management']);
 });
 
-// Status check
-$app->get('/check', function ($request, $response) {
-    $response->json([
-        'status' => 'ok',
-        'version' => $response->app->version(),
-        'env' => $response->app->environment(),
-    ]);
+$app->routeGet('/flash', function ($request, $response) {
+    return $response->view('flash/index', ['title' => 'Flash Tool']);
 });
 
-// Start application
+$app->routeGet('/imei-checker', function ($request, $response) {
+    return $response->view('flash/adb', ['title' => 'IMEI Checker']);
+});
+
+$app->routeGet('/signin', function ($request, $response) {
+    $data = ['title' => 'Sign In'];
+    return $response->view('home', $data);
+});
+
+$app->routeGet('/signup', function ($request, $response) {
+    $data = ['title' => 'Sign Up'];
+    return $response->view('home', $data);
+});
+
+// Run application
 $app->run();

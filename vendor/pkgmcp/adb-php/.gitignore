@@ -1,0 +1,7 @@
+vendor/
+.phpunit.cache/
+coverage.html/
+coverage.xml
+composer.lock
+*.swp
+*.swo
