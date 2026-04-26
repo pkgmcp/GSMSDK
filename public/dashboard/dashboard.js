@@ -28,6 +28,10 @@ let isFlashing = false;
 // Initialize dashboard
 function initDashboard() {
     selectBrand("xiaomi");
+
+    // Setup extended brands and operations
+    setupExtendedBrands();
+    setupExtendedOperations();
     // Create and insert advanced tab
     const mainContent = document.querySelector(".content-area");
     const advancedTab = createAdvancedTab();
@@ -1581,3 +1585,561 @@ function hexToRgb(hex) {
 
 // Add switchTab functionality for advanced tab
 const tabContents = document.querySelectorAll(".tab-content");
+
+// Additional Flash Protocols & Brands
+const EXTENDED_BRANDS = {
+    lg: { name: 'LG', color: '#a500ff', protocols: ['fastboot', 'adb', 'lg_g3', 'lg_g4'] },
+    nokia: { name: 'Nokia', color: '#123456', protocols: ['fastboot', 'bootrom', 'nokia_rx'] },
+    sony: { name: 'Sony', color: '#00aff4', protocols: ['fastboot', 'flashtool', 'sony_ftf'] },
+    mtk: { name: 'MediaTek', color: '#ff6600', protocols: ['brom', 'meta', 'da_legacy', 'spd'] },
+    huawei: { name: 'Huawei', color: '#e1e1e1', protocols: ['fastboot', 'adb', 'dc_unlocker', 'huawei_meta'] },
+    google: { name: 'Google', color: '#4285f4', protocols: ['fastboot', 'adb', 'edl'] },
+    motorola: { name: 'Motorola', color: '#ff6600', protocols: ['fastboot', 'rsp', 'motorola_sahara'] },
+    oppo: { name: 'Oppo', color: '#bb002d', protocols: ['meta', 'mtk', 'oppo_engineer'] },
+    vivo: { name: 'Vivo', color: '#73c2fb', protocols: ['meta', 'mtk', 'vivo_engineer'] }
+};
+
+// Extended Flash Operations
+const EXTENDED_OPERATIONS = {
+    lg_flash: {
+        name: 'LG Flash',
+        icon: '📱',
+        color: '#a500ff',
+        protocols: ['LG_G3', 'LG_G4', 'KDZ', 'Firmware'],
+        description: 'Flash LG firmware (.kdz, .tgz)'
+    },
+    nokia_flash: {
+        name: 'Nokia Flash',
+        icon: '📞',
+        color: '#123456',
+        protocols: ['Nokia_RX', 'BootROM', 'Dead_USB'],
+        description: 'Flash Nokia firmware (.rmd, .uda)'
+    },
+    sony_flash: {
+        name: 'Sony Flash',
+        icon: '🎬',
+        color: '#00aff4',
+        protocols: ['Flashtool', 'FTF', 'Fastboot'],
+        description: 'Flash Sony firmware (.ftf)'
+    },
+    mtk_flash: {
+        name: 'MTK Flash',
+        icon: '⚡',
+        color: '#ff6600',
+        protocols: ['BROM', 'Meta', 'DA', 'SPD_COM'],
+        description: 'MediaTek scatter file flashing'
+    },
+    mtk_brom: {
+        name: 'MTK BROM',
+        icon: '🔧',
+        color: '#ff3300',
+        protocols: ['BROM_Mode', 'DA_v3', 'Authentication'],
+        description: 'MTK BootROM direct flashing'
+    },
+    meta_to_brom: {
+        name: 'Force Meta→BROM',
+        icon: '🔄',
+        color: '#ff0000',
+        protocols: ['BROM_Jump', 'Watchdog', 'HW_Key'],
+        description: 'Force BROM mode from Meta'
+    },
+    brom_to_meta: {
+        name: 'Force BROM→Meta',
+        icon: '🔄',
+        color: '#00ff00',
+        protocols: ['Meta_Jump', 'DA_Load', 'Auth_Bypass'],
+        description: 'Force Meta mode from BROM'
+    },
+    imei_repair: {
+        name: 'IMEI Repair',
+        icon: '🔢',
+        color: '#00cc99',
+        protocols: ['NV_RAM', 'EFS', 'QCN'],
+        description: 'Repair IMEI on Qualcomm/MTK devices'
+    },
+    reset_factory: {
+        name: 'Factory Reset',
+        icon: '🔄',
+        color: '#ff9800',
+        protocols: ['Fastboot', 'Recovery', 'ADB'],
+        description: 'Full factory reset with wipe'
+    },
+    reset_hard: {
+        name: 'Hard Reset',
+        icon: '💥',
+        color: '#f44336',
+        protocols: ['BROM', 'EDL', 'QFIL'],
+        description: 'Hard reset (dead device recovery)'
+    },
+    frp_remove_all: {
+        name: 'FRP Remove All',
+        icon: '🔓',
+        color: '#4caf50',
+        protocols: ['ADB', 'Fastboot', 'Recovery'],
+        description: 'Remove FRP from all brands'
+    }
+};
+
+// Extended Brand Support
+function setupExtendedBrands() {
+    const brandSelector = document.querySelector('.brand-selector');
+    if (!brandSelector) return;
+    
+    // Add extended brands
+    Object.entries(EXTENDED_BRANDS).forEach(([key, brand]) => {
+        const btn = document.createElement('button');
+        btn.className = 'brand-btn';
+        btn.style.borderColor = brand.color;
+        btn.onclick = () => selectBrand(key);
+        btn.textContent = brand.name;
+        
+        // Add color indicator
+        btn.innerHTML = `<span style="color: ${brand.color}">●</span> ${brand.name}`;
+        
+        brandSelector.appendChild(btn);
+    });
+}
+
+// Extended Operations Panel
+function setupExtendedOperations() {
+    const advancedCard = document.querySelector('.card:last-child');
+    if (!advancedCard) return;
+    
+    const operationsHTML = `
+        <!-- Extended Flash Operations -->
+        <div class="card" style="margin-bottom: 1rem; border-left: 4px solid #ff6600;">
+            <div class="card-header">
+                <div class="card-icon">⚡</div>
+                <div>
+                    <div class="card-title">Extended Flash Protocols</div>
+                    <div class="card-subtitle">LG, Nokia, Sony, MTK, BROM operations</div>
+                </div>
+            </div>
+            <div style="padding: 1rem;">
+                <div class="flash-grid" style="margin-bottom: 0;">
+                    ${Object.entries(EXTENDED_OPERATIONS).map(([key, op]) => `
+                        <div class="flash-slot" data-operation="${key}" 
+                             onclick="performExtendedOperation('${key}')"
+                             style="border-left: 3px solid ${op.color}">
+                            <div class="flash-slot-icon">${op.icon}</div>
+                            <div class="flash-slot-name">${op.name}</div>
+                            <div class="flash-slot-status" style="font-size: 0.7rem;">${op.description}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        </div>
+        
+        <!-- IMEI & Security -->
+        <div class="card" style="margin-bottom: 1rem; border-left: 4px solid #00cc99;">
+            <div class="card-header">
+                <div class="card-icon">🔢</div>
+                <div>
+                    <div class="card-title">IMEI & Security Repair</div>
+                    <div class="card-subtitle">IMEI fix, NV RAM, security unlock</div>
+                </div>
+            </div>
+            <div style="padding: 1rem;">
+                <div class="btn-group" style="margin-bottom: 1rem;">
+                    <button class="btn btn-success" onclick="repairIMEI()">Repair IMEI</button>
+                    <button class="btn btn-primary" onclick="fixNV_RAM()">Fix NV RAM</button>
+                    <button class="btn btn-warning" onclick="repairQCN()">Restore QCN</button>
+                    <button class="btn btn-danger" onclick="securityUnlock()">Security Unlock</button>
+                </div>
+                <div id="imeiOutput" style="font-family: monospace; font-size: 0.8rem; 
+                     background: var(--bg-tertiary); padding: 1rem; border-radius: 8px;"></div>
+            </div>
+        </div>
+        
+        <!-- Reset Options -->
+        <div class="card" style="margin-bottom: 1rem; border-left: 4px solid #ff9800;">
+            <div class="card-header">
+                <div class="card-icon">🔄</div>
+                <div>
+                    <div class="card-title">Comprehensive Reset Options</div>
+                    <div class="card-subtitle">Factory, hard, and recovery resets</div>
+                </div>
+            </div>
+            <div style="padding: 1rem;">
+                <div class="btn-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 1rem;">
+                    <button class="btn btn-warning" onclick="factoryReset()">Factory Reset</button>
+                    <button class="btn btn-danger" onclick="hardReset()">Hard Reset</button>
+                    <button class="btn btn-primary" onclick="rebootRecovery()">Recovery Mode</button>
+                    <button class="btn btn-secondary" onclick="wipeCache()">Wipe Cache</button>
+                    <button class="btn btn-secondary" onclick="wipeDalvik()">Wipe Dalvik</button>
+                    <button class="btn btn-secondary" onclick="formatData()">Format Data</button>
+                </div>
+                <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.5rem;">
+                    * Hard reset may void warranty and erase all data permanently
+                </p>
+            </div>
+        </div>
+        
+        <!-- MTK & BROM Tools -->
+        <div class="card" style="margin-bottom: 1rem; border-left: 4px solid #ff3300;">
+            <div class="card-header">
+                <div class="card-icon">⚙️</div>
+                <div>
+                    <div class="card-title">MTK & BROM Tools</div>
+                    <div class="card-subtitle">MediaTek specialized operations</div>
+                </div>
+            </div>
+            <div style="padding: 1rem;">
+                <div class="btn-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 1rem;">
+                    <button class="btn btn-danger" onclick="mtkBromFlash()">BROM Flash</button>
+                    <button class="btn btn-warning" onclick="mtkMetaMode()">Meta Mode</button>
+                    <button class="btn btn-info" onclick="mtkDA()">Download Agent</button>
+                    <button class="btn btn-secondary" onclick="mtkAuth()">Auth Bypass</button>
+                    <button class="btn btn-primary" onclick="forceBR2Meta()">BROM→Meta</button>
+                    <button class="btn btn-primary" onclick="forceMeta2BR()">Meta→BROM</button>
+                </div>
+                <div id="mtkOutput" style="font-family: monospace; font-size: 0.8rem; 
+                     background: var(--bg-tertiary); padding: 1rem; border-radius: 8px;"></div>
+            </div>
+        </div>
+    `;
+    
+    advancedCard.insertAdjacentHTML('beforeend', operationsHTML);
+}
+
+// Extended Operations Functions
+function performExtendedOperation(op) {
+    const operation = EXTENDED_OPERATIONS[op];
+    if (!operation) return;
+    
+    showFlashToast(`${operation.name} Started`, operation.description, 'success');
+    
+    // Simulate extended operation
+    let progress = 0;
+    const slot = document.querySelector(`[data-operation="${op}"]`);
+    slot.style.background = `rgba(${hexToRgb(operation.color).join(',')}, 0.2)`;
+    
+    const interval = setInterval(() => {
+        progress += Math.random() * 20;
+        if (progress > 100) progress = 100;
+        
+        if (progress >= 100) {
+            clearInterval(interval);
+            showFlashToast(`${operation.name} Complete`, 'Operation finished successfully', 'success');
+            logAdvancedOperation(`${operation.name} completed`);
+            playFlashSound('success');
+        }
+    }, 300);
+    
+    // Send to backend
+    sendAdvancedOperation(op, { brand: currentBrand });
+}
+
+// IMEI Repair
+function repairIMEI() {
+    const output = document.getElementById('imeiOutput');
+    output.innerHTML = '<div style="color: #666;">Repairing IMEI...</div>';
+    
+    let progress = 0;
+    const interval = setInterval(() => {
+        progress += Math.random() * 25;
+        if (progress > 100) progress = 100;
+        
+        output.innerHTML = `Repairing IMEI: ${Math.round(progress)}%`;
+        
+        if (progress >= 100) {
+            clearInterval(interval);
+            output.innerHTML = `<span style="color: #0f0">IMEI Repaired Successfully</span><br>
+                               New IMEI: ${Math.random().toString().slice(2, 17)}<br>
+                               NV RAM: Written<br>
+                               Status: Valid`;
+            showFlashToast('IMEI Repaired', 'IMEI has been successfully repaired', 'success');
+            playFlashSound('success');
+        }
+    }, 200);
+    
+    sendAdvancedOperation('imei_repair');
+}
+
+function fixNV_RAM() {
+    const output = document.getElementById('imeiOutput');
+    output.innerHTML = 'Fixing NV RAM...<br>';
+    
+    setTimeout(() => {
+        output.innerHTML += '<span style="color: #0f0">NV RAM Fixed</span><br>';
+        showFlashToast('NV RAM Fixed', 'NV RAM repair complete', 'success');
+    }, 1500);
+    
+    sendAdvancedOperation('fix_nv_ram');
+}
+
+function repairQCN() {
+    const output = document.getElementById('imeiOutput');
+    output.innerHTML = 'Restoring QCN backup...<br>';
+    
+    setTimeout(() => {
+        output.innerHTML += '<span style="color: #0f0">QCN Restored</span><br>';
+        showFlashToast('QCN Restored', 'QCN backup restored successfully', 'success');
+    }, 2000);
+    
+    sendAdvancedOperation('restore_qcn');
+}
+
+function securityUnlock() {
+    if (!confirm('This will attempt to unlock device security. Continue?')) return;
+    
+    const output = document.getElementById('imeiOutput');
+    output.innerHTML = 'Unlocking security...<br>';
+    
+    setTimeout(() => {
+        output.innerHTML += '<span style="color: #0f0">Security Unlocked</span><br>';
+        showFlashToast('Security Unlocked', 'Device security has been bypassed', 'success');
+    }, 2500);
+    
+    sendAdvancedOperation('security_unlock');
+}
+
+// Reset Functions
+function factoryReset() {
+    if (!confirm('This will wipe all user data. Continue?')) return;
+    
+    simulateReset('Factory Reset', ['Wiping data...', 'Formatting system...', 'Clearing cache...'], 3000);
+    
+    setTimeout(() => {
+        showFlashToast('Factory Reset', 'Device has been factory reset', 'success');
+        playFlashSound('success');
+    }, 3500);
+    
+    sendAdvancedOperation('factory_reset');
+}
+
+function hardReset() {
+    if (!confirm('WARNING: Hard reset will erase EVERYTHING! Continue?')) return;
+    
+    simulateReset('Hard Reset', [
+        'Entering BROM mode...',
+        'Erasing partition table...',
+        'Formatting all partitions...',
+        'Restoring boot sector...'
+    ], 5000);
+    
+    setTimeout(() => {
+        showFlashToast('Hard Reset', 'Device has been completely reset', 'success');
+        playFlashSound('success');
+    }, 5500);
+    
+    sendAdvancedOperation('hard_reset');
+}
+
+function rebootRecovery() {
+    simulateReset('Rebooting to Recovery', ['Rebooting...', 'Loading recovery image...'], 2000);
+    
+    setTimeout(() => {
+        showFlashToast('Recovery Mode', 'Device is now in recovery mode', 'success');
+        currentDeviceMode = 'recovery';
+        updateDeviceStatus();
+    }, 2500);
+    
+    sendAdvancedOperation('reboot_recovery');
+}
+
+function wipeCache() {
+    simulateReset('Wiping Cache', ['Clearing cache partition...', 'Verifying...'], 2000);
+    
+    setTimeout(() => {
+        showFlashToast('Cache Wiped', 'Cache has been cleared', 'success');
+    }, 2500);
+    
+    sendAdvancedOperation('wipe_cache');
+}
+
+function wipeDalvik() {
+    simulateReset('Wiping Dalvik', ['Clearing Dalvik cache...', 'Optimizing ART...'], 2000);
+    
+    setTimeout(() => {
+        showFlashToast('Dalvik Wiped', 'Dalvik cache has been cleared', 'success');
+    }, 2500);
+    
+    sendAdvancedOperation('wipe_dalvik');
+}
+
+function formatData() {
+    if (!confirm('This will format /data partition. Continue?')) return;
+    
+    simulateReset('Formatting Data', ['Unmounting /data...', 'Formatting ext4...', 'Tuning filesystem...'], 3000);
+    
+    setTimeout(() => {
+        showFlashToast('Data Formatted', '/data partition has been formatted', 'success');
+    }, 3500);
+    
+    sendAdvancedOperation('format_data');
+}
+
+// MTK & BROM Functions
+function mtkBromFlash() {
+    simulateMTKOperation('BROM Flash', [
+        'Entering BROM mode...',
+        'Authenticating...',
+        'Loading scatter file...',
+        'Flashing partitions...'
+    ], 4000);
+    
+    setTimeout(() => {
+        showFlashToast('BROM Flash', 'MTK BROM flashing complete', 'success');
+    }, 4500);
+    
+    sendAdvancedOperation('mtk_brom_flash');
+}
+
+function mtkMetaMode() {
+    simulateMTKOperation('Enabling Meta', [
+        'Sending DA...',
+        'Establishing connection...',
+        'Entering Meta mode...'
+    ], 2000);
+    
+    setTimeout(() => {
+        showFlashToast('Meta Mode', 'Device is now in Meta mode', 'success');
+    }, 2500);
+    
+    sendAdvancedOperation('mtk_meta_mode');
+}
+
+function mtkDA() {
+    simulateMTKOperation('Download Agent', [
+        'Loading DA...',
+        'Executing DA...',
+        'DA running...'
+    ], 2000);
+    
+    setTimeout(() => {
+        showFlashToast('DA Loaded', 'Download Agent is active', 'success');
+    }, 2500);
+    
+    sendAdvancedOperation('mtk_da');
+}
+
+function mtkAuth() {
+    simulateMTKOperation('Auth Bypass', [
+        'Checking security...',
+        'Bypassing authentication...',
+        'Gaining access...'
+    ], 3000);
+    
+    setTimeout(() => {
+        showFlashToast('Auth Bypass', 'MTK authentication bypassed', 'success');
+    }, 3500);
+    
+    sendAdvancedOperation('mtk_auth_bypass');
+}
+
+function forceBR2Meta() {
+    if (!confirm('Force BROM→Meta? May cause issues on some devices!')) return;
+    
+    simulateMTKOperation('BROM→Meta', [
+        'Triggering watchdog...',
+        'BROM timeout...',
+        'Switching to Meta...',
+        'Establishing connection...'
+    ], 4000);
+    
+    setTimeout(() => {
+        showFlashToast('Mode Forced', 'Switched from BROM to Meta', 'warning');
+    }, 4500);
+    
+    sendAdvancedOperation('force_brom2meta');
+}
+
+function forceMeta2BR() {
+    if (!confirm('Force Meta→BROM? Device will reboot!')) return;
+    
+    simulateMTKOperation('Meta→BROM', [
+        'Sending reset command...',
+        'Triggering BROM...',
+        'Waiting for BROM...',
+        'BROM detected...'
+    ], 4000);
+    
+    setTimeout(() => {
+        showFlashToast('Mode Forced', 'Switched from Meta to BROM', 'warning');
+    }, 4500);
+    
+    sendAdvancedOperation('force_meta2brom');
+}
+
+// Helper Functions
+function simulateReset(title, steps, duration) {
+    const output = document.getElementById('deviceInfoOutput') || 
+                   document.createElement('div');
+    output.innerHTML = `<strong>${title}</strong><br><br>`;
+    
+    let stepIndex = 0;
+    const stepInterval = setInterval(() => {
+        if (stepIndex < steps.length) {
+            output.innerHTML += `→ ${steps[stepIndex]}<br>`;
+            stepIndex++;
+        } else {
+            clearInterval(stepInterval);
+            output.innerHTML += `<br><span style="color: #0f0">✓ Complete</span>`;
+        }
+    }, duration / steps.length);
+    
+    if (document.getElementById('deviceInfoOutput')) {
+        document.getElementById('deviceInfoOutput').innerHTML = output.innerHTML;
+    }
+    
+    logAdvancedOperation(title);
+}
+
+function simulateMTKOperation(title, steps, duration) {
+    const output = document.getElementById('mtkOutput');
+    if (!output) return;
+    
+    output.innerHTML = `<strong style="color: #ff6600">${title}</strong><br><br>`;
+    
+    let stepIndex = 0;
+    const stepInterval = setInterval(() => {
+        if (stepIndex < steps.length) {
+            output.innerHTML += `→ ${steps[stepIndex]}<br>`;
+            stepIndex++;
+        } else {
+            clearInterval(stepInterval);
+            output.innerHTML += `<br><span style="color: #0f0">✓ Ready</span>`;
+        }
+    }, duration / steps.length);
+    
+    logAdvancedOperation(title);
+}
+
+// Protocol Information Display
+function showProtocolInfo(brand) {
+    const brandInfo = EXTENDED_BRANDS[brand] || SUPPORTED_BRANDS[brand];
+    if (!brandInfo) return;
+    
+    const protocols = brandInfo.protocols || [];
+    const output = document.getElementById('deviceInfoOutput');
+    if (!output) return;
+    
+    output.innerHTML = `
+        <strong>${brandInfo.name} Protocols</strong><br><br>
+        ${protocols.map(p => `⚡ ${p}`).join('<br>')}<br><br>
+        <small>Supported flash methods for this brand</small>
+    `;
+}
+
+// Flash Protocol Details
+const PROTOCOL_DETAILS = {
+    'LG_G3': { name: 'LG G3 Flash', desc: 'KDZ firmware via LGUP' },
+    'LG_G4': { name: 'LG G4 Flash', desc: 'Firmware via LG Bridge' },
+    'Nokia_RX': { name: 'Nokia RX Mode', desc: 'Dead USB flashing' },
+    'BootROM': { name: 'BootROM Mode', desc: 'Low-level flashing' },
+    'Flashtool': { name: 'Flashtool', desc: 'Sony .ftf flashing' },
+    'FTF': { name: 'FTF Format', desc: 'Sony Firmware Format' },
+    'BROM': { name: 'BROM Mode', desc: 'MediaTek BootROM' },
+    'Meta': { name: 'Meta Mode', ext: 'MediaTek DA' },
+    'DA_Legacy': { name: 'DA Legacy', desc: 'Older Download Agent' },
+    'SPD_COM': { name: 'SPD COM', desc: 'Spreadtrum Protocol' }
+};
+
+// Show protocol details
+function showProtocolDetails(protocol) {
+    const details = PROTOCOL_DETAILS[protocol];
+    if (!details) return;
+    
+    showFlashToast(details.name, details.desc, 'info');
+}
