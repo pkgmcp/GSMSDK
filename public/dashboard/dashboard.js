@@ -28,6 +28,10 @@ let isFlashing = false;
 // Initialize dashboard
 function initDashboard() {
     selectBrand("xiaomi");
+    // Create and insert advanced tab
+    const mainContent = document.querySelector(".content-area");
+    const advancedTab = createAdvancedTab();
+    mainContent.appendChild(advancedTab);
     setupEventListeners();
     setupWebSocket();
     setupWorkers();
@@ -1076,3 +1080,504 @@ function simulateBrandFlash(partition, brand) {
         }
     }, 200);
 }
+
+// Advanced Flash Operations
+const ADVANCED_OPERATIONS = {
+    spd_flash: {
+        name: 'SPD Flash',
+        icon: '⚡',
+        description: 'Flash SPD (Spreadtrum) firmware',
+        color: '#9c27b0'
+    },
+    spectrum: {
+        name: 'Spectrum',
+        icon: '🌈',
+        description: 'CPU/GPU spectrum tuning',
+        color: '#e91e63'
+    },
+    cpu_pac: {
+        name: 'CPU PAC',
+        icon: '🧠',
+        description: 'CPU Performance Analysis Config',
+        color: '#00bcd4'
+    },
+    xml_flash: {
+        name: 'XML Flash',
+        icon: '📄',
+        description: 'Flash XML configuration files',
+        color: '#8bc34a'
+    }
+};
+
+// Advanced Features State
+let advancedFeatures = {
+    frpRemoved: false,
+    bootloaderUnlocked: false,
+    spdFlashed: false,
+    spectrumTuned: false,
+    cpuPacConfigured: false,
+    xmlFlashed: false
+};
+
+// Create Advanced Features Tab
+function createAdvancedTab() {
+    const tabContent = document.createElement('div');
+    tabContent.id = 'tab-advanced';
+    tabContent.className = 'tab-content';
+    tabContent.innerHTML = `
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon">⚙️</div>
+                <div>
+                    <div class="card-title">Advanced Features</div>
+                    <div class="card-subtitle">Deep-level device configuration and flash operations</div>
+                </div>
+            </div>
+            
+            <!-- FRP Remove Section -->
+            <div class="card" style="margin-bottom: 1rem;">
+                <div class="card-header">
+                    <div class="card-icon">🔓</div>
+                    <div>
+                        <div class="card-title">FRP (Factory Reset Protection) Remove</div>
+                        <div class="card-subtitle">Bypass Google account verification</div>
+                    </div>
+                </div>
+                <div style="padding: 1rem;">
+                    <p style="margin-bottom: 1rem; color: var(--text-secondary);">
+                        Remove FRP lock to bypass Google account verification after factory reset.
+                    </p>
+                    <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem;">
+                        <button class="btn btn-danger" onclick="removeFrp()" id="frpBtn">
+                            Remove FRP
+                        </button>
+                        <span class="badge ${advancedFeatures.frpRemoved ? 'badge-success' : 'badge-warning'}" id="frpStatus">
+                            ${advancedFeatures.frpRemoved ? 'Removed' : 'Active'}
+                        </span>
+                    </div>
+                    <div id="frpProgress" class="progress-bar-container" style="display: none;">
+                        <div class="progress-text">
+                            <span>Removing FRP...</span>
+                            <span class="percentage" id="frpPercentage">0%</span>
+                        </div>
+                        <div class="progress-bar"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bootloader Unlock Section -->
+            <div class="card" style="margin-bottom: 1rem;">
+                <div class="card-header">
+                    <div class="card-icon">🔓</div>
+                    <div>
+                        <div class="card-title">Bootloader Unlocking</div>
+                        <div class="card-subtitle">Unlock device bootloader for custom ROMs</div>
+                    </div>
+                </div>
+                <div style="padding: 1rem;">
+                    <p style="margin-bottom: 1rem; color: var(--text-secondary);">
+                        Warning: Unlocking bootloader will wipe all data and void warranty on some devices.
+                    </p>
+                    <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem;">
+                        <button class="btn btn-warning" onclick="unlockBootloader()" id="unlockBtn">
+                            Unlock Bootloader
+                        </button>
+                        <span class="badge ${advancedFeatures.bootloaderUnlocked ? 'badge-success' : 'badge-warning'}" id="unlockStatus">
+                            ${advancedFeatures.bootloaderUnlocked ? 'Unlocked' : 'Locked'}
+                        </span>
+                    </div>
+                    <div id="unlockProgress" class="progress-bar-container" style="display: none;">
+                        <div class="progress-text">
+                            <span>Unlocking bootloader...</span>
+                            <span class="percentage" id="unlockPercentage">0%</span>
+                        </div>
+                        <div class="progress-bar"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Advanced Flash Operations Grid -->
+            <div class="card" style="margin-bottom: 1rem;">
+                <div class="card-header">
+                    <div class="card-icon">⚡</div>
+                    <div>
+                        <div class="card-title">Advanced Flash Operations</div>
+                        <div class="card-subtitle">Specialized firmware flash types</div>
+                    </div>
+                </div>
+                <div style="padding: 1rem;">
+                    <div class="flash-grid" style="margin-bottom: 0;">
+                        <div class="flash-slot" data-operation="spd_flash" onclick="performAdvancedOperation('spd_flash')">
+                            <div class="flash-slot-icon">⚡</div>
+                            <div class="flash-slot-name">SPD Flash</div>
+                            <div class="flash-slot-status">Spreadtrum firmware</div>
+                            <span class="badge ${advancedFeatures.spdFlashed ? 'badge-success' : 'badge-warning'}" style="margin-top: 0.5rem;">
+                                ${advancedFeatures.spdFlashed ? 'Done' : 'Pending'}
+                            </span>
+                        </div>
+                        <div class="flash-slot" data-operation="spectrum" onclick="performAdvancedOperation('spectrum')">
+                            <div class="flash-slot-icon">🌈</div>
+                            <div class="flash-slot-name">Spectrum</div>
+                            <div class="flash-slot-status">CPU/GPU tuning</div>
+                            <span class="badge ${advancedFeatures.spectrumTuned ? 'badge-success' : 'badge-warning'}" style="margin-top: 0.5rem;">
+                                ${advancedFeatures.spectrumTuned ? 'Done' : 'Pending'}
+                            </span>
+                        </div>
+                        <div class="flash-slot" data-operation="cpu_pac" onclick="performAdvancedOperation('cpu_pac')">
+                            <div class="flash-slot-icon">🧠</div>
+                            <div class="flash-slot-name">CPU PAC</div>
+                            <div class="flash-slot-status">Performance config</div>
+                            <span class="badge ${advancedFeatures.cpuPacConfigured ? 'badge-success' : 'badge-warning'}" style="margin-top: 0.5rem;">
+                                ${advancedFeatures.cpuPacConfigured ? 'Done' : 'Pending'}
+                            </span>
+                        </div>
+                        <div class="flash-slot" data-operation="xml_flash" onclick="performAdvancedOperation('xml_flash')">
+                            <div class="flash-slot-icon">📄</div>
+                            <div class="flash-slot-name">XML Flash</div>
+                            <div class="flash-slot-status">Configuration files</div>
+                            <span class="badge ${advancedFeatures.xmlFlashed ? 'badge-success' : 'badge-warning'}" style="margin-top: 0.5rem;">
+                                ${advancedFeatures.xmlFlashed ? 'Done' : 'Pending'}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Read Firmware Section -->
+            <div class="card" style="margin-bottom: 1rem;">
+                <div class="card-header">
+                    <div class="card-icon">📄</div>
+                    <div>
+                        <div class="card-title">Read Firmware</div>
+                        <div class="card-subtitle">Backup current firmware</div>
+                    </div>
+                </div>
+                <div style="padding: 1rem;">
+                    <p style="margin-bottom: 1rem; color: var(--text-secondary);">
+                        Backup current firmware partitions to your computer.
+                    </p>
+                    <div class="btn-group">
+                        <button class="btn btn-primary" onclick="readFirmware('boot')">Read Boot</button>
+                        <button class="btn btn-primary" onclick="readFirmware('system')">Read System</button>
+                        <button class="btn btn-primary" onclick="readFirmware('vendor')">Read Vendor</button>
+                        <button class="btn btn-primary" onclick="readFirmware('all')">Read All Partitions</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reboot Options Section -->
+            <div class="card" style="margin-bottom: 1rem;">
+                <div class="card-header">
+                    <div class="card-icon">🔄</div>
+                    <div>
+                        <div class="card-title">Reboot Options</div>
+                        <div class="card-subtitle">Advanced reboot modes</div>
+                    </div>
+                </div>
+                <div style="padding: 1rem;">
+                    <div class="btn-group">
+                        <button class="btn btn-warning" onclick="rebootToMode('normal')">Normal Boot</button>
+                        <button class="btn btn-warning" onclick="rebootToMode('recovery')">Recovery Mode</button>
+                        <button class="btn btn-warning" onclick="rebootToMode('bootloader')">Bootloader</button>
+                        <button class="btn btn-warning" onclick="rebootToMode('download')">Download Mode</button>
+                        <button class="btn btn-warning" onclick="rebootToMode('edl')">EDL Mode</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Device Info Section -->
+            <div class="card" style="margin-bottom: 1rem;">
+                <div class="card-header">
+                    <div class="card-icon">📊</div>
+                    <div>
+                        <div class="card-title">Device Information</div>
+                        <div class="card-subtitle">Detailed device specifications</div>
+                    </div>
+                </div>
+                <div style="padding: 1rem;">
+                    <button class="btn btn-secondary" onclick="readDeviceInfo()" style="width: 100%;">
+                        Read Full Device Info
+                    </button>
+                    <div id="deviceInfoOutput" style="margin-top: 1rem; font-family: monospace; font-size: 0.8rem; max-height: 300px; overflow-y: auto; background: var(--bg-tertiary); padding: 1rem; border-radius: 8px;"></div>
+                </div>
+            </div>
+
+            <!-- Operation Log -->
+            <div class="card" style="margin-bottom: 1rem;">
+                <div class="card-header">
+                    <div class="card-icon">📋</div>
+                    <div>
+                        <div class="card-title">Advanced Operation Log</div>
+                        <div class="card-subtitle">Detailed log of all operations</div>
+                    </div>
+                </div>
+                <div style="padding: 1rem;">
+                    <div id="advancedLog" style="font-family: 'Courier New', monospace; font-size: 0.75rem; max-height: 200px; overflow-y: auto; background: #0a0a0a; padding: 1rem; border-radius: 8px;">
+                        <div style="color: #666;">Advanced operations will appear here...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    return tabContent;
+}
+
+// Remove FRP
+async function removeFrp() {
+    if (!confirm('Warning: FRP removal may void warranty. Continue?')) {
+        return;
+    }
+    
+    const btn = document.getElementById('frpBtn');
+    const progress = document.getElementById('frpProgress');
+    const percentage = document.getElementById('frpPercentage');
+    
+    btn.disabled = true;
+    progress.style.display = 'block';
+    
+    let progressValue = 0;
+    const interval = setInterval(() => {
+        progressValue += Math.random() * 20;
+        if (progressValue > 100) progressValue = 100;
+        
+        percentage.textContent = Math.round(progressValue) + '%';
+        progress.querySelector('.progress-bar').style.width = progressValue + '%';
+        
+        if (progressValue >= 100) {
+            clearInterval(interval);
+            advancedFeatures.frpRemoved = true;
+            
+            document.getElementById('frpStatus').textContent = 'Removed';
+            document.getElementById('frpStatus').className = 'badge badge-success';
+            
+            showFlashToast('FRP Removed', 'Factory Reset Protection has been removed', 'success');
+            logAdvancedOperation('FRP removal completed successfully');
+            
+            setTimeout(() => {
+                progress.style.display = 'none';
+                btn.disabled = false;
+                percentage.textContent = '0%';
+                progress.querySelector('.progress-bar').style.width = '0%';
+            }, 2000);
+        }
+    }, 200);
+    
+    // Send to backend
+    sendAdvancedOperation('frp_remove');
+}
+
+// Unlock Bootloader
+async function unlockBootloader() {
+    if (!confirm('WARNING: Unlocking bootloader will WIPE ALL DATA and may void warranty. Continue?')) {
+        return;
+    }
+    
+    const btn = document.getElementById('unlockBtn');
+    const progress = document.getElementById('unlockProgress');
+    const percentage = document.getElementById('unlockPercentage');
+    
+    btn.disabled = true;
+    progress.style.display = 'block';
+    
+    let progressValue = 0;
+    const interval = setInterval(() => {
+        progressValue += Math.random() * 15;
+        if (progressValue > 100) progressValue = 100;
+        
+        percentage.textContent = Math.round(progressValue) + '%';
+        progress.querySelector('.progress-bar').style.width = progressValue + '%';
+        
+        if (progressValue >= 100) {
+            clearInterval(interval);
+            advancedFeatures.bootloaderUnlocked = true;
+            
+            document.getElementById('unlockStatus').textContent = 'Unlocked';
+            document.getElementById('unlockStatus').className = 'badge badge-success';
+            
+            showFlashToast('Bootloader Unlocked', 'Device is now unlocked', 'success');
+            logAdvancedOperation('Bootloader unlocked successfully');
+            
+            setTimeout(() => {
+                progress.style.display = 'none';
+                btn.disabled = false;
+                percentage.textContent = '0%';
+                progress.querySelector('.progress-bar').style.width = '0%';
+            }, 2000);
+        }
+    }, 250);
+    
+    // Send to backend
+    sendAdvancedOperation('bootloader_unlock');
+}
+
+// Perform Advanced Operation
+function performAdvancedOperation(operation) {
+    const operationInfo = ADVANCED_OPERATIONS[operation];
+    if (!operationInfo) return;
+    
+    // Flash the operation
+    const slot = document.querySelector(`[data-operation="${operation}"]`);
+    slot.style.borderColor = operationInfo.color;
+    slot.style.background = 'rgba(' + hexToRgb(operationInfo.color).join(',') + ', 0.1)';
+    
+    let progress = 0;
+    const badge = slot.querySelector('.badge');
+    
+    // Simulate progress
+    const interval = setInterval(() => {
+        progress += Math.random() * 25;
+        if (progress > 100) progress = 100;
+        
+        if (progress >= 100) {
+            clearInterval(interval);
+            
+            // Update state
+            const featureMap = {
+                spd_flash: 'spdFlashed',
+                spectrum: 'spectrumTuned',
+                cpu_pac: 'cpuPacConfigured',
+                xml_flash: 'xmlFlashed'
+            };
+            
+            advancedFeatures[featureMap[operation]] = true;
+            
+            badge.textContent = 'Done';
+            badge.className = 'badge badge-success';
+            
+            showFlashToast(`${operationInfo.name} Complete`, `${operationInfo.description} finished`, 'success');
+            logAdvancedOperation(`${operationInfo.name} completed`);
+            
+            // Send to backend
+            sendAdvancedOperation(operation);
+        }
+    }, 300);
+}
+
+// Read Firmware
+async function readFirmware(partition) {
+    showFlashToast('Reading Firmware', `Reading ${partition} partition...`, 'success');
+    
+    // Simulate read operation
+    let progress = 0;
+    const interval = setInterval(() => {
+        progress += Math.random() * 20;
+        if (progress > 100) progress = 100;
+        
+        if (progress >= 100) {
+            clearInterval(interval);
+            showFlashToast('Firmware Read', `${partition} partition read complete`, 'success');
+            logAdvancedOperation(`Firmware read: ${partition}`);
+        }
+    }, 200);
+    
+    // Send to backend
+    sendAdvancedOperation('firmware_read', { partition });
+}
+
+// Reboot to Mode
+async function rebootToMode(mode) {
+    const modeNames = {
+        normal: 'Normal',
+        recovery: 'Recovery',
+        bootloader: 'Bootloader',
+        download: 'Download',
+        edl: 'EDL'
+    };
+    
+    showFlashToast('Rebooting', `Rebooting to ${modeNames[mode]} mode...`, 'success');
+    logAdvancedOperation(`Reboot to ${mode} mode`);
+    
+    // Send to backend
+    sendAdvancedOperation('reboot', { mode });
+    
+    setTimeout(() => {
+        currentDeviceMode = mode;
+        updateDeviceStatus();
+    }, 2000);
+}
+
+// Read Device Info
+async function readDeviceInfo() {
+    const output = document.getElementById('deviceInfoOutput');
+    output.innerHTML = '<div style="color: #666;">Reading device information...</div>';
+    
+    // Simulate reading
+    setTimeout(() => {
+        const deviceInfo = `
+=== DEVICE INFORMATION ===
+Manufacturer: ${SUPPORTED_BRANDS[currentBrand]?.name || 'Generic'}
+Model: SM-${Math.random().toString().slice(2, 7)}
+Serial: ${Math.random().toString(36).substring(2, 15).toUpperCase()}
+Android Version: 13
+Kernel Version: 5.10.66-android13-00001-g1234567
+Baseband: MDM9650
+Security Patch: 2024-01-01
+KNOX Warranty: 0x0 (Void: No)
+
+=== PARTITIONS ===
+boot            128MB    OK
+recovery        64MB     OK
+system          12GB     OK
+vendor          4GB      OK
+product         8GB      OK
+vbmeta          4KB      OK
+userdata        128GB    OK
+cache           2GB      OK
+
+=== MEMORY ===
+Total RAM: 12GB
+Available: 8.2GB
+
+=== BATTERY ===
+Level: 87%
+Status: Charging
+Temperature: 32°C
+
+=== NETWORK ===
+IMEI: ${Math.random().toString().slice(2, 17)}
+MEID: ${Math.random().toString(36).substring(2, 10).toUpperCase()}
+MAC: ${Math.random().toString(16).slice(2, 14)}
+        `.trim();
+        
+        logAdvancedOperation('Device info read complete');
+    }, 1000);
+}
+
+// Send Advanced Operation to Backend
+function sendAdvancedOperation(operation, params = {}) {
+    // This would send to backend via WebSocket or API
+    const data = {
+        operation,
+        brand: currentBrand,
+        deviceId: document.getElementById('deviceSerial').textContent || 'unknown',
+        timestamp: new Date().toISOString(),
+        ...params
+    };
+    
+    // Log operation
+    console.log('Advanced operation:', data);
+}
+
+// Log Advanced Operation
+function logAdvancedOperation(message) {
+    const log = document.getElementById('advancedLog');
+    const timestamp = new Date().toLocaleTimeString();
+    const entry = document.createElement('div');
+    entry.style.cssText = 'margin-bottom: 0.25rem; color: #0f0;';
+    entry.innerHTML = `[${timestamp}] ${message}`;
+    log.insertBefore(entry, log.firstChild);
+}
+
+// Helper: Convert Hex to RGB
+function hexToRgb(hex) {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? [
+        parseInt(result[1], 16),
+        parseInt(result[2], 16),
+        parseInt(result[3], 16)
+    ] : [128, 128, 128];
+}
+
+// Add switchTab functionality for advanced tab
+const tabContents = document.querySelectorAll(".tab-content");
