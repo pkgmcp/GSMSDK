@@ -1,196 +1,212 @@
 # GSMSDK
 
-> **GSMSDK** — Full-Stack PHP 8.5+ Framework for Desktop & Mobile Applications
+> **GSMSDK** — Full-Stack PHP 8.5+ Framework for Desktop & Mobile Applications with ADB & Fastboot Integration
 
 [![PHP ≥ 8.5](https://img.shields.io/badge/PHP-%3E%3D8.5-8892bf)](https://php.net)  
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue)](LICENSE)  
+[![Tests](https://img.shields.io/badge/Tests-passing-brightgreen)](tests/)  
+
+---
 
 ## Overview
 
-GSMSDK is a modern, full-stack PHP framework designed for building desktop and mobile applications with native capabilities. Built entirely with PHP 8.5+ features, it provides a clean, type-safe, and developer-friendly experience with integrated ADB and Fastboot protocol support.
+GSMSDK is a modern, enterprise-grade PHP framework designed for building **desktop**, **mobile**, and **web applications** with native capabilities and integrated Android device management. Built entirely with PHP 8.5+ features, it provides a clean, type-safe, and developer-friendly experience.
 
-## Features
+## 🚀 Quick Start
 
-### 🏗️ Core
-- **Dependency Injection Container** - PSR-11 compatible
-- **HTTP Layer** - Request/Response objects with validation
-- **Database** - Fluent query builder for MySQL, PostgreSQL, SQLite
-- **Configuration** - Dot-notation access, environment-aware
-- **Error Handling** - Centralized exception handling
-
-### 💻 Desktop
-- **Window Management** - Create and configure application windows
-- **Electron Integration** - Seamless Electron.js integration ready
-- **Menu System** - Native menu bars
-- **Auto-updates** - Built-in update mechanism
-
-### 📱 Mobile
-- **Android/iOS** - Cross-platform mobile development
-- **Permissions** - Declarative permission system
-- **Native APIs** - Camera, GPS, Notifications, Storage
-- **App Config** - Bundle identifier, version management
-- **Manifest Generation** - Auto-generate AndroidManifest.xml & Info.plist
-
-### 🌐 Web & API
-- **REST API** - Build RESTful services
-- **CORS Support** - Built-in CORS handling
-- **Middleware** - Request/response middleware pipeline
-
-### ⚙️ CLI
-- **Console Commands** - Custom CLI commands
-- **Task Scheduling** - Cron-like job scheduling
-
-### 🔧 Device Management
-- **ADB Integration** - Full Android Debug Bridge protocol
-- **Fastboot Integration** - Bootloader mode operations
-- **Unified Interface** - Switch ADB ↔ Fastboot seamlessly
-
-## Requirements
-
-- PHP 8.5 or higher
-- Composer 2.0+
-- PDO extension (with MySQL/SQLite/PostgreSQL)
-- JSON extension
-- Mbstring extension
-
-## Installation
-
-### Quick Start
+### Installation
 
 ```bash
-# Install as dependency
+# Install via Composer
 composer require pkgmcp/gsmsdk
-```
 
-### Manual Installation
-
-```bash
-git clone https://github.com/pkgmcp/gsmsdk.git
-cd gsmsdk
+# Clone repository
+git clone https://github.com/pkgmcp/GSMSDK.git
+cd GSMSDK
 composer install
 ```
 
-## Quick Example
-
-### Desktop Application
+### Basic Application
 
 ```php
-use GSMSDK\Desktop\Application;
-use GSMSDK\Desktop\Window;
+<?php
+use GSMSDK\Core\MvcApplication;
 
-$app = new Application();
+require 'vendor/autoload.php';
 
-$window = $app->createWindow([
-    'title' => 'My Desktop App',
-    'width' => 1200,
-    'height' => 800,
-    'resizable' => true,
+$app = new MvcApplication([
+    'debug' => true,
+    'environment' => 'development',
+    'paths' => [
+        'views' => __DIR__ . '/resources/views',
+        'controllers' => __DIR__ . '/app/Controllers',
+    ],
 ]);
 
+// Define routes
+$app->get('/', 'HomeController@index');
+$app->get('/dashboard', 'DashboardController@index');
+
+// Run application
 $app->run();
 ```
 
-### Mobile App Configuration
+## 🎨 Features
 
-```php
-use GSMSDK\Mobile\App;
+### 🏗️ Core Architecture
+- **Dependency Injection Container** - PSR-11 compatible with lazy loading
+- **HTTP Layer** - Full PSR-7 inspired Request/Response objects
+- **MVC Framework** - Clean separation with View renderer
+- **Fluent Query Builder** - Type-safe database operations
+- **Event System** - Hook into application lifecycle
+- **Macro System** - Extend classes at runtime
+- **Configuration Management** - Dot-notation access
 
-$app = new App([
-    'name' => 'My Mobile App',
-    'identifier' => 'com.example.app',
-    'version' => '1.0.0',
-]);
+### 💻 Desktop Applications
+- **Window Management** - Create and configure windows
+- **Electron Integration** - Seamless Electron.js support
+- **Menu System** - Native menu bars
+- **Tray Icons** - System tray integration
+- **Auto-updates** - Built-in update mechanism
 
-$app->addPlatform('android')
-    ->addPlatform('ios')
-    ->addPermission('android.permission.INTERNET');
+### 📱 Mobile Applications
+- **Android/iOS Support** - Cross-platform development
+- **Manifest Generation** - Auto-generate AndroidManifest.xml & Info.plist
+- **Permission Management** - Declarative permission system
+- **Native APIs** - Camera, GPS, Notifications, Storage
+- **App Configuration** - Bundle ID, version, build management
 
-echo $app->generateAndroidManifest();
-```
+### 🔌 Android Integration
+- **ADB Protocol** - Full Android Debug Bridge implementation
+- **Fastboot Protocol** - Bootloader mode operations
+- **Device Management** - List, connect, query devices
+- **Shell Commands** - Execute ADB shell commands
+- **APK Operations** - Install, uninstall, clear apps
+- **File Transfers** - Push/pull files to/from device
+- **Screen Capture** - Take screenshots
+- **LogCat** - Read device logs
+- **Port Forwarding** - TCP forward and reverse proxies
 
-### Database Query
+## 📖 Documentation
 
-```php
-use GSMSDK\Database\Connection;
-use GSMSDK\Database\QueryBuilder;
+- [Quick Start Guide](docs/QUICKSTART.md)
+- [API Reference](docs/API.md)
+- [Desktop Guide](docs/DESKTOP.md)
+- [Mobile Guide](docs/MOBILE.md)
+- [Database Guide](docs/DATABASE.md)
+- [ADB & Fastboot Guide](docs/ANDROID.md)
+- [Security Policy](SECURITY.md)
+- [Changelog](CHANGELOG.md)
 
-$db = new Connection([
-    'driver' => 'mysql',
-    'host' => '127.0.0.1',
-    'database' => 'myapp',
-    'username' => 'root',
-]);
-
-$users = $db->query('SELECT * FROM users WHERE active = ?', [1])->fetchAll();
-
-// Or use Query Builder
-$qb = new QueryBuilder($db);
-$users = $qb->table('users')
-    ->where('active', 1)
-    ->orderBy('created_at', 'DESC')
-    ->limit(10)
-    ->get();
-```
-
-### Device Management
-
-```php
-use GSMSDK\DeviceManager;
-
-$manager = new DeviceManager();
-
-// Connect via ADB
-$adb = $manager->connectADB('emulator-5554');
-$props = $adb->getProperties();
-
-// Switch to Fastboot
-$manager->switchToFastboot();
-
-// Connect via Fastboot
-$fastboot = $manager->getFastbootDevice();
-$fastboot->flash('boot', '/path/to/boot.img');
-```
-
-## Project Structure
+## 🛠️ Architecture
 
 ```
 gsmsdk/
 ├── src/
-│   ├── Core/              # Application core (DI, Controller)
-│   ├── HTTP/              # HTTP layer (Request, Response)
-│   ├── Database/          # Database (Connection, QueryBuilder)
-│   ├── CLI/               # Console interface
-│   ├── Desktop/           # Desktop app support
-│   ├── Mobile/            # Mobile app config
-│   ├── Fastboot/          # Fastboot integration
-│   ├── ADB/               # ADB integration
-│   ├── Contracts/         # Interfaces
-│   ├── Traits/            # Reusable traits
-│   └── Exceptions/        # Exception classes
-├── examples/              # Example applications
-├── public/                # Web entry point
-└── tests/                 # Test suite
+│   ├── Core/              # Application core
+│   │   ├── Application.php      # Base DI container
+│   │   ├── MvcApplication.php   # MVC framework
+│   │   ├── Controller.php       # Base controller
+│   │   ├── Model.php            # ActiveRecord base
+│   │   └── View.php             # View renderer
+│   ├── HTTP/               # HTTP layer
+│   │   ├── Request.php          # PSR-7 Request
+│   │   └── Response.php         # PSR-7 Response
+│   ├── Database/           # Database layer
+│   │   ├── Connection.php       # PDO wrapper
+│   │   └── QueryBuilder.php     # Fluent ORM
+│   ├── CLI/                # Console interface
+│   │   └── Console.php          # Command runner
+│   ├── Desktop/            # Desktop support
+│   │   ├── Application.php      # Desktop app
+│   │   └── Window.php           # Window manager
+│   ├── Mobile/             # Mobile support
+│   │   └── App.php              # App config
+│   ├── Fastboot/           # Fastboot wrapper
+│   ├── ADB/                # ADB wrapper
+│   ├── Contracts/          # Interfaces
+│   ├── Traits/             # Reusable traits
+│   └── Exceptions/         # Exception classes
+├── app/
+│   ├── Controllers/        # Application controllers
+│   ├── Models/             # Application models
+│   └── Views/              # Application views
+├── resources/
+│   ├── views/              # View templates
+│   │   ├── layouts/        # Layout templates
+│   │   └── partials/       # Partial templates
+│   └── assets/             # Static assets
+├── public/                 # Web root
+├── tests/                  # Test suite
+└── config/                 # Configuration files
 ```
 
-## PHP 8.5+ Features
+## 🎯 Use Cases
+
+### Web Applications
+```php
+// Create RESTful APIs
+$app->get('/api/users', 'UserController@index');
+$app->post('/api/users', 'UserController@store');
+```
+
+### Desktop Applications
+```php
+// Build cross-platform desktop apps
+$app = new Desktop\Application();
+$window = $app->createWindow([
+    'title' => 'My App',
+    'width' => 1200,
+    'height' => 800,
+]);
+```
+
+### Mobile Applications
+```php
+// Configure mobile apps
+$app = new Mobile\App([
+    'name' => 'My App',
+    'identifier' => 'com.example.app',
+]);
+$app->addPermission('android.permission.INTERNET');
+echo $app->generateAndroidManifest();
+```
+
+### Android Device Management
+```php
+// ADB operations
+use GSMSDK\ADB\ADBDevice;
+
+$adb = new ADBDevice();
+$adb->connect('device-serial');
+$adb->install('/path/to/app.apk');
+$adb->shell('pm list packages');
+
+// Fastboot operations
+use GSMSDK\Fastboot\FastbootDevice;
+
+$fastboot = new FastbootDevice();
+$fastboot->connect('device-serial');
+$fastboot->flash('boot', '/path/to/boot.img');
+$fastboot->reboot();
+```
+
+## ⚡ PHP 8.5+ Features
+
+GSMSDK leverages modern PHP features:
 
 - **Readonly Classes** - Immutable value objects
-- **Typed Properties** - Type safety everywhere
+- **Typed Properties** - Type safety throughout
 - **Named Arguments** - Self-documenting code
 - **Union Types** - Flexible type hints
 - **Attributes** - Metadata annotations
 - **Enums** - Type-safe constants
 - **Match Expressions** - Clean conditional logic
 - **Constructor Promotion** - Concise constructors
+- **Fiber Support** - Async operations (when needed)
+- **First-class Callables** - Clean callback syntax
 
-## Integration Libraries
-
-GSMSDK integrates the following official packages:
-
-- **[adb-php](https://github.com/pkgmcp/adb-php)** - ADB protocol implementation
-- **[fastboot-php](https://github.com/pkgmcp/fastboot-php)** - Fastboot protocol implementation
-
-## Testing
+## 🧪 Testing
 
 ```bash
 # Install dependencies
@@ -198,19 +214,52 @@ composer install
 
 # Run tests
 composer test
+
+# Run with coverage
+composer coverage
 ```
 
-## Documentation
+## 📦 Dependencies
 
-- [API Reference](docs/API.md)
-- [Desktop Guide](docs/DESKTOP.md)
-- [Mobile Guide](docs/MOBILE.md)
-- [Database Guide](docs/DATABASE.md)
+- **Required**: PHP 8.5+, PDO, JSON, Mbstring
+- **ADB Integration**: pkgmcp/adb-php ^1.0
+- **Fastboot Integration**: pkgmcp/fastboot-php ^1.0
+- **Dev**: PHPUnit ^11.0
 
-## License
+## 🔄 Integration Libraries
+
+GSMSDK integrates with our protocol libraries:
+
+- **[adb-php](https://github.com/pkgmcp/adb-php)** - Full ADB protocol implementation
+- **[fastboot-php](https://github.com/pkgmcp/fastboot-php)** - Fastboot protocol implementation
+
+## 🌍 Ecosystem
+
+- **[Android PHP SDK Demo](https://github.com/pkgmcp/android-php-sdk-demo)** - Web UI for ADB/Fastboot
+- **[ADB PHP](https://github.com/pkgmcp/adb-php)** - ADB protocol library
+- **[Fastboot PHP](https://github.com/pkgmcp/fastboot-php)** - Fastboot protocol library
+
+## 🤝 Contributing
+
+We welcome contributions! Please read our [Contributing Guide](CONTRIBUTING.md) first.
+
+### Development Setup
+
+```bash
+git clone https://github.com/pkgmcp/gsmsdk.git
+cd gsmsdk
+composer install
+composer test
+```
+
+## 📄 License
 
 MIT License - see [LICENSE](LICENSE) file.
 
 ---
 
 **Built with ❤️ for the PHP community**
+
+[![Discord](https://img.shields.io/badge/Discord-Join-blue?logo=discord)](https://discord.gg/gsmsdk)  
+[![Documentation](https://img.shields.io/badge/Docs-Read-blue)](https://gsmsdk.io/docs)  
+[![Issues](https://img.shields.io/badge/Issues-Report-red)](https://github.com/pkgmcp/gsmsdk/issues)
