@@ -5,83 +5,72 @@ declare(strict_types=1);
 namespace GSMSDK\HTTP;
 
 /**
- * HTTP Request object
- *
- * Enhanced with route parameters and session support
+ * HTTP Request object with Laravel 13-inspired features
  */
-class Request implements RequestInterface
+class Request
 {
+    private array $get = [];
+    private array $post = [];
+    private array $server = [];
+    private array $files = [];
+    private array $cookies = [];
+    private array $headers = [];
     private string $method;
     private string $uri;
-    private array $headers;
-    private array $query;
-    private array $post;
-    private array $json;
-    private array $files;
-    private array $server;
-    private array $cookies;
-    private string $content;
-    /** @var array<string, mixed> Route parameters */
+    private ?string $body = null;
     private array $routeParams = [];
-    /** @var array<string, mixed> Session data */
-    private array $session = [];
+    private array $attributes = [];
 
     public function __construct()
     {
-        $this->method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-        $this->uri = $_SERVER['REQUEST_URI'] ?? '/';
-        $this->headers = $this->extractHeaders();
-        $this->query = $_GET;
+        $this->get = $_GET;
         $this->post = $_POST;
-        $this->json = $this->parseJsonBody();
-        $this->files = $_FILES;
         $this->server = $_SERVER;
+        $this->files = $_FILES;
         $this->cookies = $_COOKIE;
-        $this->content = file_get_contents('php://input') ?: '';
-        $this->session = $_SESSION ?? [];
+        $this->method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+        $this->uri = $this->getUri();
+        $this->parseHeaders();
     }
 
-    public function method(): string
+    private function parseHeaders(): void
+    {
+        foreach ($this->server as $key => $value) {
+            if (str_starts_with($key, 'HTTP_')) {
+                $header = str_replace(' ', '-', ucwords(str_replace('_', ' ', strtolower(substr($key, 5)))));
+                $this->headers[$header] = $value;
+            }
+        }
+    }
+
+    private function getUri(): string
+    {
+        return parse_url($this->server['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
+    }
+
+    public function getMethod(): string
     {
         return $this->method;
     }
 
-    public function uri(): string
+    public function getUri(): string
     {
         return $this->uri;
     }
 
-    public function path(): string
-    {
-        $path = parse_url($this->uri, PHP_URL_PATH);
-        return $path ?: '/';
-    }
-
-    public function isMethod(string $method): bool
-    {
-        return strtoupper($method) === $this->method;
-    }
-
     public function expectsJson(): bool
     {
-        $accept = $this->header('Accept', '');
-        return str_contains($accept, 'application/json');
+        return str_contains($this->header('Accept', ''), 'application/json');
     }
 
-    public function all(): array
+    public function ajax(): bool
     {
-        return array_merge($this->query, $this->post, $this->json);
+        return strtolower($this->header('X-Requested-With', '')) === 'xmlhttprequest';
     }
 
-    public function input(string $key, mixed $default = null): mixed
+    public function get(string $key, mixed $default = null): mixed
     {
-        $all = $this->all();
-        return $all[$key] ?? $default;
-    }
-
-    public function query(string $key, mixed $default = null): mixed
-    {
-        return $this->query[$key] ?? $default;
+        return $this->get[$key] ?? $default;
     }
 
     public function post(string $key, mixed $default = null): mixed
@@ -89,9 +78,19 @@ class Request implements RequestInterface
         return $this->post[$key] ?? $default;
     }
 
-    public function json(string $key, mixed $default = null): mixed
+    public function server(string $key, mixed $default = null): mixed
     {
-        return $this->json[$key] ?? $default;
+        return $this->server[$key] ?? $default;
+    }
+
+    public function header(string $key, mixed $default = null): mixed
+    {
+        return $this->headers[$key] ?? $default;
+    }
+
+    public function cookie(string $key, mixed $default = null): mixed
+    {
+        return $this->cookies[$key] ?? $default;
     }
 
     public function file(string $key): ?array
@@ -99,132 +98,157 @@ class Request implements RequestInterface
         return $this->files[$key] ?? null;
     }
 
-    public function header(string $key, string $default = ''): string
+    public function all(): array
     {
-        $normalizedKey = strtolower($key);
-        foreach ($this->headers as $name => $value) {
-            if (strtolower($name) === $normalizedKey) {
-                return $value;
-            }
-        }
-        return $default;
+        return array_merge($this->get, $this->post);
     }
 
-    public function headers(): array
+    public function only(array $keys): array
     {
-        return $this->headers;
+        return array_intersect_key($this->all(), array_flip($keys));
     }
 
-    public function server(string $key, mixed $default = null): mixed
+    public function except(array $keys): array
     {
-        return $this->server[$key] ?? $default;
-    }
-
-    public function ip(): string
-    {
-        return $this->server('HTTP_X_FORWARDED_FOR') ??
-               $this->server('HTTP_CLIENT_IP') ??
-               $this->server('REMOTE_ADDR') ??
-               '0.0.0.0';
-    }
-
-    public function userAgent(): string
-    {
-        return $this->server('HTTP_USER_AGENT', '');
-    }
-
-    public function content(): string
-    {
-        return $this->content;
+        return array_diff_key($this->all(), array_flip($keys));
     }
 
     public function has(string $key): bool
     {
-        return array_key_exists($key, $this->all());
+        return isset($this->get[$key]) || isset($this->post[$key]);
     }
 
-    /**
-     * Get route parameter
-     */
+    public function filled(string $key): bool
+    {
+        $value = $this->all()[$key] ?? null;
+        return !empty($value);
+    }
+
+    public function missing(string $key): bool
+    {
+        return !$this->filled($key);
+    }
+
+    public function body(): string
+    {
+        if ($this->body === null) {
+            $this->body = file_get_contents('php://input');
+        }
+        return $this->body;
+    }
+
+    public function json(string $key = null, mixed $default = null): mixed
+    {
+        static $data = null;
+        if ($data === null) {
+            $body = $this->body();
+            $data = $body ? json_decode($body, true) : [];
+        }
+        if ($key === null) {
+            return $data;
+        }
+        return $data[$key] ?? $default;
+    }
+
+    public function getRouteParams(): array
+    {
+        return $this->routeParams;
+    }
+
+    public function setRouteParams(array $params): self
+    {
+        $this->routeParams = $params;
+        return $this;
+    }
+
     public function route(string $key, mixed $default = null): mixed
     {
         return $this->routeParams[$key] ?? $default;
     }
 
-    /**
-     * Get all route parameters
-     *
-     * @return array<string, mixed>
-     */
-    public function routeParams(): array
+    public function setAttribute(string $key, mixed $value): self
     {
-        return $this->routeParams;
+        $this->attributes[$key] = $value;
+        return $this;
     }
 
-    /**
-     * Set route parameters
-     *
-     * @param  array<string, mixed>  $params  Route parameters
-     */
-    public function setRouteParams(array $params): void
+    public function attribute(string $key, mixed $default = null): mixed
     {
-        $this->routeParams = $params;
+        return $this->attributes[$key] ?? $default;
     }
 
-    /**
-     * Get session value
-     */
-    public function session(string $key, mixed $default = null): mixed
+    public function isContentType(string $type): bool
     {
-        return $this->session[$key] ?? $default;
+        return str_contains($this->header('Content-Type', ''), $type);
     }
 
-    /**
-     * Get CSRF token
-     */
-    public function csrfToken(): string
+    public function isMethod(string $method): bool
     {
-        return $this->session('_token') ?? '';
+        return strtoupper($method) === $this->method;
     }
 
-    /**
-     * Check if request is AJAX
-     */
-    public function isAjax(): bool
+    public function validate(array $rules): array
     {
-        return strtolower($this->header('X-Requested-With')) === 'xmlhttprequest';
-    }
+        $data = $this->all();
+        $errors = [];
 
-    private function extractHeaders(): array
-    {
-        $headers = [];
-        foreach ($this->server as $key => $value) {
-            if (str_starts_with($key, 'HTTP_')) {
-                $name = str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($key, 5)))));
-                $headers[$name] = $value;
-            } elseif (in_array($key, ['CONTENT_TYPE', 'CONTENT_LENGTH', 'CONTENT_MD5'])) {
-                $name = str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', $key))));
-                $headers[$name] = $value;
+        foreach ($rules as $field => $ruleString) {
+            $rules = explode('|', $ruleString);
+            $value = $data[$field] ?? null;
+
+            foreach ($rules as $rule) {
+                if (str_contains($rule, ':')) {
+                    [$ruleName, $ruleValue] = explode(':', $rule, 2);
+                } else {
+                    $ruleName = $rule;
+                    $ruleValue = null;
+                }
+
+                $isValid = $this->validateRule($field, $value, $ruleName, $ruleValue, $data);
+                if (!$isValid) {
+                    $errors[$field][] = "The {$field} field {$this->getErrorMessage($ruleName)}.";
+                }
             }
         }
-        if (isset($this->server['PHP_AUTH_USER'])) {
-            $headers['PHP_AUTH_USER'] = $this->server['PHP_AUTH_USER'];
-            $headers['PHP_AUTH_PW'] = $this->server['PHP_AUTH_PW'] ?? '';
-        } elseif (isset($this->server['HTTP_AUTHORIZATION'])) {
-            $headers['Authorization'] = $this->server['HTTP_AUTHORIZATION'];
+
+        if (!empty($errors)) {
+            throw new \InvalidArgumentException(json_encode($errors));
         }
-        return $headers;
+
+        return $data;
     }
 
-    private function parseJsonBody(): array
+    private function validateRule(string $field, mixed $value, string $rule, string $ruleValue, array $data): bool
     {
-        $contentType = $this->server('CONTENT_TYPE', '');
-        if (str_contains($contentType, 'application/json') && $this->content !== '') {
-            $decoded = json_decode($this->content, true);
-            if (json_last_error() === JSON_ERROR_NONE) {
-                return is_array($decoded) ? $decoded : [];
-            }
-        }
-        return [];
+        return match ($rule) {
+            'required' => !empty($value) || $value === 0,
+            'email' => filter_var($value, FILTER_VALIDATE_EMAIL) !== false,
+            'url' => filter_var($value, FILTER_VALIDATE_URL) !== false,
+            'numeric' => is_numeric($value),
+            'integer' => filter_var($value, FILTER_VALIDATE_INT) !== false,
+            'string' => is_string($value),
+            'array' => is_array($value),
+            'min' => is_numeric($value) && $value >= $ruleValue,
+            'max' => is_numeric($value) && $value <= $ruleValue,
+            'size' => strlen((string) $value) == $ruleValue,
+            'confirmed' => isset($data[$field . '_confirmation']) && $value === $data[$field . '_confirmation'],
+            'same' => $value === ($data[$ruleValue] ?? null),
+            'different' => $value !== ($data[$ruleValue] ?? null),
+            'in' => in_array($value, explode(',', $ruleValue)),
+            'not_in' => !in_array($value, explode(',', $ruleValue)),
+            default => true,
+        };
+    }
+
+    private function getErrorMessage(string $rule): string
+    {
+        return match ($rule) {
+            'required' => 'is required',
+            'email' => 'must be a valid email',
+            'numeric' => 'must be numeric',
+            'min' => 'is too small',
+            'max' => 'is too large',
+            default => 'is invalid',
+        };
     }
 }
