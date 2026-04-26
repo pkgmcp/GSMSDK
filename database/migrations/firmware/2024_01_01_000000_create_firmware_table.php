@@ -7,6 +7,8 @@ use GSMSDK\Database\Schema;
 
 /**
  * Create Firmware Table Migration
+ * 
+ * Enhanced with security patches, IMEI support, flash mode tracking
  */
 return new class extends Migration {
     public function __construct() {
@@ -25,7 +27,9 @@ return new class extends Migration {
             $table->string('region', 50)->nullable();
             $table->string('version', 50);
             $table->string('build_number', 50)->nullable();
-            $table->string('firmware_type', 50); // official, beta, custom, stock
+            $table->string('security_patch', 50)->nullable(); // Security patch date
+            $table->string('android_version', 50)->nullable();
+            $table->string('firmware_type', 50); // official, beta, custom, stock, hyperos
             $table->string('file_name', 255);
             $table->string('file_size', 50);
             $table->string('file_hash', 64); // SHA256
@@ -36,6 +40,13 @@ return new class extends Migration {
             $table->integer('rating')->default(0);
             $table->boolean('is_popular')->default(false);
             $table->boolean('is_recommended')->default(false);
+            $table->boolean('imei_repair_supported')->default(false); // IMEI repair capability
+            $table->boolean('flash_mode_supported')->default(true); // Flash mode flashing
+            $table->boolean('adb_mode_supported')->default(true); // ADB mode flashing
+            $table->boolean('frp_remove_supported')->default(false); // FRP removal
+            $table->boolean('camera_sms_working')->default(true); // Post-repair functionality
+            $table->boolean('ota_supported')->default(true); // OTA update support
+            $table->boolean('factory_reset_safe')->default(true); // Factory reset safety
             $table->timestamps();
             $table->softDeletes();
             
@@ -43,6 +54,8 @@ return new class extends Migration {
             $table->index(['version']);
             $table->index(['status']);
             $table->index(['is_popular']);
+            $table->index(['security_patch']);
+            $table->index(['firmware_type']);
         });
         
         $this->getPdo()->exec($sql);
