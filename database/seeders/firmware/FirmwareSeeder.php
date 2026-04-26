@@ -34,12 +34,27 @@ class FirmwareSeeder extends Seeder {
             ->official()
             ->create();
         
-        // Xiaomi/Redmi with IMEI repair support
+        // Xiaomi-specific devices with IMEI repair support
         $this->factory(\GSMSDK\Models\Firmware::class)
-            ->count(10)
+            ->count(15)
             ->imeiRepair()
             ->official()
+            ->create(function (FirmwareFactory $f) {
+                $f->xiaomi();
+            });
+        
+        // Xiaomi additional models
+        $this->factory(\GSMSDK\Models\Firmware::class)
+            ->count(20)
+            ->xiaomi()
             ->create();
+        
+        // Xiaomi Redmi series additional
+        $this->factory(\GSMSDK\Models\Firmware::class)
+            ->count(15)
+            ->create(function (FirmwareFactory $f) {
+                $f->state(['brand' => 'xiaomi', 'firmware_type' => 'official']);
+            });
         
         // Samsung devices
         $this->factory(\GSMSDK\Models\Firmware::class)
@@ -216,8 +231,8 @@ class FirmwareSeeder extends Seeder {
             ['plato', 'xiaomi', 'Xiaomi 12T'],
             ['aristotle', 'xiaomi', 'Xiaomi 13T'],
             ['zircon', 'xiaomi', 'Redmi Note 13 Pro+ 5G'],
-            ['xaga', 'xiaomi', 'Redmi Note 11T Pro / Redmi Note 11T Pro+'],
-            ['air', 'xiaomi', 'Redmi 13R 5G / Redmi 13C 5G'],
+            ['xaga', 'xiaomi', 'Redmi Note 11T Pro / Redmi Note 11T Pro+ / POCO X4 GT'],
+            ['air', 'xiaomi', 'Redmi 13R 5G / Redmi 13C 5G / POCO M6 5G'],
             ['moon', 'xiaomi', 'Redmi 13'],
             ['tides', 'xiaomi', 'Redmi 13'],
             ['pond', 'xiaomi', 'Redmi 14C / POCO C75'],
