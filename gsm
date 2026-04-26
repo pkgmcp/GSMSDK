@@ -1,0 +1,82 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+/**
+ * GSM CLI Tool
+ *
+ * Command-line interface for GSM template operations
+ */
+
+if (php_sapi_name() !== 'cli') {
+    die('This script must be run from the command line.' . PHP_EOL);
+}
+
+// Bootstrap the application
+$basePath = dirname(__DIR__);
+require_once $basePath . '/vendor/autoload.php';
+
+use GSMSDK\Core\Application;
+use GSMSDK\CLI\Console;
+use GSMSDK\Commands\GsmMakeView;
+
+// Create application instance
+$app = new Application([
+    'debug' => true,
+    'environment' => 'development',
+    'paths' => [
+        'base' => $basePath,
+        'views' => $basePath . '/resources/views',
+        'controllers' => $basePath . '/app/Controllers',
+        'layouts' => $basePath . '/resources/views/layouts',
+    ],
+    'app' => [
+        'name' => 'GSMSDK',
+        'url' => 'http://localhost',
+    ],
+]);
+
+// Create and configure console
+$console = new Console($app);
+
+// Register make:view command
+$console->command(
+    'make:view',
+    'Create a new GSM template file',
+    function (array $args) use ($app) {
+        if (empty($args[0])) {
+            echo "Error: View name is required\n";
+            echo GsmMakeView::help();
+            exit(1);
+        }
+
+        $command = new GsmMakeView();
+        
+        // Parse arguments
+        $name = $args[0];
+        $isLayout = in_array('--layout', $args);
+        $isComponent = in_array('--component', $args);
+        $isSection = in_array('--section', $args);
+        
+        // Set arguments and options
+        $_SERVER['argv'] = array_merge(['gsm', 'make:view', $name], $args);
+        
+        // Call handle method directly
+        $reflection = new ReflectionClass($command);
+        $method = $reflection->getMethod('handle');
+        $method->setAccessible(true);
+        
+        // Manually set the command properties
+        $class = new \ReflectionClass($command);
+        
+        // Create a mock command parser
+        $command->setName('make:view');
+        $exitCode = $method->invoke($command);
+        
+        exit($exitCode);
+    }
+);
+
+// Run console
+$console->run($argv);
