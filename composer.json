@@ -2,7 +2,7 @@
     "name": "pkgmcp/gsmsdk",
     "type": "library",
     "description": "GSMSDK - Full-Stack PHP 8.5+ Framework for Desktop & Mobile Applications",
-    "keywords": ["php", "framework", "fullstack", "desktop", "mobile", "sdk", "gsm", "api"],
+    "keywords": ["php", "framework", "fullstack", "desktop", "mobile", "sdk", "gsm"],
     "homepage": "https://github.com/pkgmcp/gsmsdk",
     "authors": [
         {
@@ -14,7 +14,9 @@
     "require": {
         "php": ">=8.5.0",
         "ext-json": "*",
-        "ext-pdo": "*"
+        "ext-pdo": "*",
+        "pkgmcp/adb-php": "^1.0",
+        "pkgmcp/fastboot-php": "^1.0"
     },
     "require-dev": {
         "phpunit/phpunit": "^11.0"
@@ -27,7 +29,9 @@
             "GSMSDK\\Database\\": "src/Database/",
             "GSMSDK\\CLI\\": "src/CLI/",
             "GSMSDK\\Desktop\\": "src/Desktop/",
-            "GSMSDK\\Mobile\\": "src/Mobile/"
+            "GSMSDK\\Mobile\\": "src/Mobile/",
+            "GSMSDK\\Fastboot\\": "src/Fastboot/",
+            "GSMSDK\\ADB\\": "src/ADB/"
         }
     },
     "autoload-dev": {
