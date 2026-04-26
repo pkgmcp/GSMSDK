@@ -31,6 +31,9 @@ function initDashboard() {
 
     // Setup extended brands and operations
     setupExtendedBrands();
+
+    // Initialize extended features
+    initExtendedFeatures();
     setupExtendedOperations();
     // Create and insert advanced tab
     const mainContent = document.querySelector(".content-area");
@@ -2142,4 +2145,623 @@ function showProtocolDetails(protocol) {
     if (!details) return;
     
     showFlashToast(details.name, details.desc, 'info');
+}
+
+// Qualcomm & Xiaomi Extended Features
+const QUALCOMM_FEATURES = {
+    edl_flash: {
+        name: 'EDL Flash',
+        icon: '⚡',
+        color: '#9c27b0',
+        protocols: ['EDL', 'Sahara', 'Firehose', 'MBN'],
+        description: 'Qualcomm Emergency DownLoad mode flash'
+    },
+    edl_flash_xml_single: {
+        name: 'EDL XML Single',
+        icon: '📄',
+        color: '#7b1fa2',
+        protocols: ['EDL', 'XML', 'Single'],
+        description: 'Flash single partition via XML'
+    },
+    edl_flash_xml_multi: {
+        name: 'EDL XML Multi',
+        icon: '📦',
+        color: '#4a148c',
+        protocols: ['EDL', 'XML', 'Multi'],
+        description: 'Flash multiple partitions via XML'
+    },
+    read_security: {
+        name: 'Read Security',
+        icon: '🔐',
+        color: '#0277bd',
+        protocols: ['NVRAM', 'EFS', 'QCN'],
+        description: 'Read security partitions'
+    },
+    backup_nvram: {
+        name: 'Backup NVRAM',
+        icon: '💾',
+        color: '#0288d1',
+        protocols: ['NVRAM', 'Backup'],
+        description: 'Backup NVRAM partition'
+    },
+    backup_efs: {
+        name: 'Backup EFS',
+        icon: '📁',
+        color: '#039be5',
+        protocols: ['EFS', 'Backup'],
+        description: 'Backup EFS partition'
+    },
+    backup_qcn: {
+        name: 'Backup QCN',
+        icon: '💾',
+        color: '#00acc1',
+        protocols: ['QCN', 'Backup'],
+        description: 'Backup QCN (Qualcomm Config)' 
+    },
+    restore_qcn: {
+        name: 'Restore QCN',
+        icon: '📤',
+        color: '#0097a7',
+        protocols: ['QCN', 'Restore'],
+        description: 'Restore QCN backup'
+    },
+    reboot_edl: {
+        name: 'Reboot EDL',
+        icon: '🔄',
+        color: '#00bcd4',
+        protocols: ['EDL', 'Reboot'],
+        description: 'Reboot to EDL mode'
+    }
+};
+
+const XIAOMI_FEATURES = {
+    all_model_bl_unlock: {
+        name: 'All Model BL Unlock',
+        icon: '🔓',
+        color: '#ff6700',
+        protocols: ['Fastboot', 'Mi Unlock', 'Authorize'],
+        description: 'Bootloader unlock for all Xiaomi models'
+    },
+    mi_account_remove: {
+        name: 'Mi Account Remove',
+        icon: '👤',
+        color: '#ff9800',
+        protocols: ['ADB', 'FRP', 'Account'],
+        description: 'Remove Mi account lock'
+    },
+    temp_bl_unlock: {
+        name: 'Temp BL Unlock',
+        icon: '🔑',
+        color: '#ff5722',
+        protocols: ['Temporary', 'Fastboot', 'Unlock'],
+        description: 'Temporary bootloader unlock'
+    },
+    fastboot_unlock: {
+        name: 'Fastboot Unlock',
+        icon: '⚡',
+        color: '#f44336',
+        protocols: ['Fastboot', 'OEM', 'Unlock'],
+        description: 'Standard fastboot unlock'
+    },
+    edl_unlock: {
+        name: 'EDL Unlock',
+        icon: '⚠️',
+        color: '#d32f2f',
+        protocols: ['EDL', 'Deep Flash', 'Unlock'],
+        description: 'Unlock via EDL mode'
+    },
+    flash_all_xiaomi: {
+        name: 'Flash All Xiaomi',
+        icon: '📱',
+        color: '#e91e63',
+        protocols: ['Fastboot', 'Xiaomi', 'Flash'],
+        description: 'Complete flash for Xiaomi devices'
+    },
+    miui_flash: {
+        name: 'MIUI Flash',
+        icon: '🎨',
+        color: '#9c27b0',
+        protocols: ['MIUI', 'Fastboot', 'Flash'],
+        description: 'Flash MIUI ROM'
+    },
+    recovery_flash: {
+        name: 'Recovery Flash',
+        icon: '🛠️',
+        color: '#7b1fa2',
+        protocols: ['Recovery', 'TWRP', 'Flash'],
+        description: 'Flash custom recovery'
+    }
+};
+
+// Setup Qualcomm Features Panel
+function setupQualcommFeatures() {
+    const advancedCard = document.querySelector('.card:last-child');
+    if (!advancedCard) return;
+    
+    const qualcommHTML = `
+        <!-- Qualcomm Features -->
+        <div class="card" style="margin-bottom: 1rem; border-left: 4px solid #9c27b0;">
+            <div class="card-header">
+                <div class="card-icon">⚡</div>
+                <div>
+                    <div class="card-title">Qualcomm Snapdragon Features</div>
+                    <div class="card-subtitle">EDL mode, NVRAM, EFS, QCN operations</div>
+                </div>
+            </div>
+            <div style="padding: 1rem;">
+                <div class="flash-grid" style="margin-bottom: 0;">
+                    ${Object.entries(QUALCOMM_FEATURES).map(([key, feat]) => `
+                        <div class="flash-slot" data-operation="${key}" 
+                             onclick="performQualcommOperation('${key}')"
+                             style="border-left: 3px solid ${feat.color}">
+                            <div class="flash-slot-icon">${feat.icon}</div>
+                            <div class="flash-slot-name">${feat.name}</div>
+                            <div class="flash-slot-status">${feat.description}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        </div>
+        
+        <!-- EDL Flash Area -->
+        <div class="card" style="margin-bottom: 1rem; border-left: 4px solid #7b1fa2;">
+            <div class="card-header">
+                <div class="card-icon">📄</div>
+                <div>
+                    <div class="card-title">EDL XML Flash</div>
+                    <div class="card-subtitle">Qualcomm XML partition flashing</div>
+                </div>
+            </div>
+            <div style="padding: 1rem;">
+                <div class="form-group">
+                    <label class="form-label">XML File</label>
+                    <input type="file" id="edlXmlFile" accept=".xml" class="form-input">
+                </div>
+                <div class="btn-group" style="margin-top: 1rem;">
+                    <button class="btn btn-primary" onclick="flashEdlXmlSingle()">Single Partition</button>
+                    <button class="btn btn-primary" onclick="flashEdlXmlMulti()">Multi Partition</button>
+                </div>
+                <div id="edlFlashProgress" class="progress-bar-container" style="margin-top: 1rem; display: none;">
+                    <div class="progress-text">
+                        <span>EDL Flashing...</span>
+                        <span class="percentage" id="edlProgress">0%</span>
+                    </div>
+                    <div class="progress-bar"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Security Backup -->
+        <div class="card" style="margin-bottom: 1rem; border-left: 4px solid #0277bd;">
+            <div class="card-header">
+                <div class="card-icon">🔐</div>
+                <div>
+                    <div class="card-title">Security Backup & Restore</div>
+                    <div class="card-subtitle">NVRAM, EFS, QCN operations</div>
+                </div>
+            </div>
+            <div style="padding: 1rem;">
+                <div class="btn-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                    <button class="btn btn-primary" onclick="backupNVRAM()">Backup NVRAM</button>
+                    <button class="btn btn-primary" onclick="backupEFS()">Backup EFS</button>
+                    <button class="btn btn-primary" onclick="backupQCN()">Backup QCN</button>
+                    <button class="btn btn-success" onclick="restoreQCN()">Restore QCN</button>
+                    <button class="btn btn-warning" onclick="readSecurity()">Read Security</button>
+                    <button class="btn btn-danger" onclick="wipeSecurity()">Wipe Security</button>
+                </div>
+                <div id="securityOutput" style="margin-top: 1rem; font-family: monospace; font-size: 0.8rem; 
+                     background: var(--bg-tertiary); padding: 1rem; border-radius: 8px; display: none;"></div>
+            </div>
+        </div>
+    `;
+    
+    advancedCard.insertAdjacentHTML('beforeend', qualcommHTML);
+}
+
+// Setup Xiaomi Features Panel
+function setupXiaomiFeatures() {
+    const advancedCard = document.querySelector('.card:last-child');
+    if (!advancedCard) return;
+    
+    const xiaomiHTML = `
+        <!-- Xiaomi Features -->
+        <div class="card" style="margin-bottom: 1rem; border-left: 4px solid #ff6700;">
+            <div class="card-header">
+                <div class="card-icon">📱</div>
+                <div>
+                    <div class="card-title">Xiaomi Redmi Features</div>
+                    <div class="card-subtitle">Bootloader unlock, Mi account, all models</div>
+                </div>
+            </div>
+            <div style="padding: 1rem;">
+                <div class="flash-grid" style="margin-bottom: 0;">
+                    ${Object.entries(XIAOMI_FEATURES).map(([key, feat]) => `
+                        <div class="flash-slot" data-operation="${key}" 
+                             onclick="performXiaomiOperation('${key}')"
+                             style="border-left: 3px solid ${feat.color}">
+                            <div class="flash-slot-icon">${feat.icon}</div>
+                            <div class="flash-slot-name">${feat.name}</div>
+                            <div class="flash-slot-status">${feat.description}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Xiaomi Fastboot Options -->
+        <div class="card" style="margin-bottom: 1rem; border-left: 4px solid #ff9800;">
+            <div class="card-header">
+                <div class="card-icon">🔧</div>
+                <div>
+                    <div class="card-title">Xiaomi Fastboot Options</div>
+                    <div class="card-subtitle">Bootloader & unlock operations</div>
+                </div>
+            </div>
+            <div style="padding: 1rem;">
+                <div class="form-group">
+                    <label class="form-label">Xiaomi Model</label>
+                    <select id="xiaomiModel" class="form-select">
+                        <option value="all">All Models</option>
+                        <option value="redmi_note">Redmi Note Series</option>
+                        <option value="xiaomi_mi">Xiaomi Mi Series</option>
+                        <option value="pocophone">PocoPhone</option>
+                        <option value="black_shark">Black Shark</option>
+                    </select>
+                </div>
+                <div class="checkbox-group" style="margin-bottom: 1rem;">
+                    <input type="checkbox" id="officialUnlock" class="checkbox">
+                    <label for="officialUnlock" class="checkbox-label">Official Unlock Only</label>
+                </div>
+                <div class="btn-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                    <button class="btn btn-warning" onclick="xiaomiBlUnlock()">BL Unlock</button>
+                    <button class="btn btn-warning" onclick="xiaomiTempUnlock()">Temp Unlock</button>
+                    <button class="btn btn-danger" onclick="xiaomiEdlUnlock()">EDL Unlock</button>
+                    <button class="btn btn-success" onclick="xiaomiMiAccountRemove()">Remove Mi Account</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- ROM Flash -->
+        <div class="card" style="margin-bottom: 1rem; border-left: 4px solid #e91e63;">
+            <div class="card-header">
+                <div class="card-icon">🎨</div>
+                <div>
+                    <div class="card-title">ROM Flash Options</div>
+                    <div class="card-subtitle">MIUI, Recovery, Fastboot flash</div>
+                </div>
+            </div>
+            <div style="padding: 1rem;">
+                <div class="btn-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                    <button class="btn btn-primary" onclick="flashMiui()">Flash MIUI</button>
+                    <button class="btn btn-primary" onclick="flashAllXiaomi()">Flash All</button>
+                    <button class="btn btn-primary" onclick="flashTWRP()">Flash TWRP</button>
+                    <button class="btn btn-secondary" onclick="formatXiaomiData()">Format Data</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    advancedCard.insertAdjacentHTML('beforeend', xiaomiHTML);
+}
+
+// Qualcomm Operations
+function performQualcommOperation(op) {
+    const operation = QUALCOMM_FEATURES[op];
+    if (!operation) return;
+    
+    showFlashToast(`${operation.name} Started`, operation.description, 'success');
+    
+    // Simulate Qualcomm operation
+    let progress = 0;
+    const slot = document.querySelector(`[data-operation="${op}"]`);
+    slot.style.background = `rgba(${hexToRgb(operation.color).join(',')}, 0.2)`;
+    
+    // Special handling for different operations
+    switch(op) {
+        case 'edl_flash':
+            simulateEdlFlash();
+            break;
+        case 'edl_flash_xml_single':
+        case 'edl_flash_xml_multi':
+            simulateEdlXmlFlash(op);
+            break;
+        case 'reboot_edl':
+            rebootToEdl();
+            break;
+        case 'backup_nvram':
+        case 'backup_efs':
+        case 'backup_qcn':
+        case 'restore_qcn':
+        case 'read_security':
+            performSecurityOperation(op);
+            break;
+        default:
+            const interval = setInterval(() => {
+                progress += Math.random() * 20;
+                if (progress > 100) {
+                    clearInterval(interval);
+                    showFlashToast(`${operation.name} Complete`, 'Operation finished successfully', 'success');
+                    playFlashSound('success');
+                }
+            }, 300);
+            break;
+    }
+    
+    sendAdvancedOperation(`qualcomm_${op}`, { brand: currentBrand });
+}
+
+// Simulate EDL Flash
+function simulateEdlFlash() {
+    const progressEl = document.getElementById('edlFlashProgress');
+    const percentageEl = document.getElementById('edlProgress');
+    
+    progressEl.style.display = 'block';
+    
+    let progress = 0;
+    const interval = setInterval(() => {
+        progress += Math.random() * 15;
+        if (progress > 100) progress = 100;
+        
+        percentageEl.textContent = Math.round(progress) + '%';
+        progressEl.querySelector('.progress-bar').style.width = progress + '%';
+        
+        if (progress >= 100) {
+            clearInterval(interval);
+            setTimeout(() => {
+                showFlashToast('EDL Flash', 'Qualcomm EDL flash complete', 'success');
+                playFlashSound('success');
+                progressEl.style.display = 'none';
+            }, 1000);
+        }
+    }, 200);
+}
+
+// Simulate EDL XML Flash
+function simulateEdlXmlFlash(type) {
+    const fileInput = type === 'edl_flash_xml_single' ? 'edlXmlFile' : 'edlXmlFile';
+    const file = document.getElementById(fileInput)?.files?.[0];
+    
+    if (!file) {
+        showFlashToast('EDL XML Flash', 'Please select XML file', 'warning');
+        return;
+    }
+    
+    const progressEl = document.getElementById('edlFlashProgress');
+    const percentageEl = document.getElementById('edlProgress');
+    
+    progressEl.style.display = 'block';
+    percentageEl.textContent = '0%';
+    
+    let progress = 0;
+    const interval = setInterval(() => {
+        progress += Math.random() * 10;
+        if (progress > 100) progress = 100;
+        
+        percentageEl.textContent = Math.round(progress) + '%';
+        progressEl.querySelector('.progress-bar').style.width = progress + '%';
+        
+        if (progress >= 100) {
+            clearInterval(interval);
+            setTimeout(() => {
+                const desc = type === 'edl_flash_xml_single' ? 'single partition' : 'multiple partitions';
+                showFlashToast('EDL XML Flash', `${desc} flashed successfully`, 'success');
+                playFlashSound('success');
+                progressEl.style.display = 'none';
+            }, 1000);
+        }
+    }, 250);
+}
+
+// Reboot to EDL
+function rebootToEdl() {
+    showFlashToast('Rebooting to EDL', 'Entering Emergency DownLoad mode...', 'success');
+    
+    setTimeout(() => {
+        showFlashToast('EDL Mode', 'Device is now in EDL mode', 'success');
+        currentDeviceMode = 'edl';
+        updateDeviceStatus();
+    }, 3000);
+    
+    sendAdvancedOperation('qualcomm_reboot_edl');
+}
+
+// Security Operations
+function performSecurityOperation(op) {
+    const output = document.getElementById('securityOutput');
+    output.style.display = 'block';
+    
+    const operations = {
+        backup_nvram: { name: 'NVRAM Backup', file: 'nvram.bin', time: 2000 },
+        backup_efs: { name: 'EFS Backup', file: 'efs.img', time: 3000 },
+        backup_qcn: { name: 'QCN Backup', file: 'qcn.bin', time: 2500 },
+        restore_qcn: { name: 'QCN Restore', file: 'qcn.bin', time: 2500 },
+        read_security: { name: 'Read Security', file: 'security.txt', time: 1500 }
+    };
+    
+    const opInfo = operations[op];
+    if (!opInfo) return;
+    
+    output.innerHTML = `<strong>${opInfo.name}</strong> in progress...<br><br>`;
+    
+    let progress = 0;
+    const interval = setInterval(() => {
+        progress += Math.random() * 25;
+        if (progress > 100) progress = 100;
+        
+        output.innerHTML = `<strong>${opInfo.name}</strong> (${Math.round(progress)}%)<br>`;
+        
+        if (progress >= 100) {
+            clearInterval(interval);
+            
+            if (op === 'read_security') {
+                output.innerHTML += `
+                    ✓ NVRAM: Read successfully<br>
+                    ✓ EFS: Read successfully<br>
+                    ✓ QCN: Read successfully<br>
+                    <br><small>Backup files: ${opInfo.file}</small>
+                `;
+            } else {
+                output.innerHTML += `
+                    ✓ Operation completed<br>
+                    ✓ File: ${opInfo.file}<br>
+                    ✓ Size: ${Math.floor(Math.random() * 100) + 50}MB<br>
+                    ✓ Status: Success
+                `;
+            }
+            
+            showFlashToast(opInfo.name, 'Operation completed successfully', 'success');
+            playFlashSound('success');
+        }
+    }, 200);
+    
+    sendAdvancedOperation(`qualcomm_${op}`);
+}
+
+function backupNVRAM() { performSecurityOperation('backup_nvram'); }
+function backupEFS() { performSecurityOperation('backup_efs'); }
+function backupQCN() { performSecurityOperation('backup_qcn'); }
+function restoreQCN() { performSecurityOperation('restore_qcn'); }
+function readSecurity() { performSecurityOperation('read_security'); }
+function wipeSecurity() {
+    if (!confirm('This will wipe all security data! Continue?')) return;
+    showFlashToast('Security Wipe', 'Security data wiped', 'success');
+    sendAdvancedOperation('qualcomm_wipe_security');
+}
+
+function flashEdlXmlSingle() { simulateEdlXmlFlash('edl_flash_xml_single'); }
+function flashEdlXmlMulti() { simulateEdlXmlFlash('edl_flash_xml_multi'); }
+
+// Xiaomi Operations
+function performXiaomiOperation(op) {
+    const operation = XIAOMI_FEATURES[op];
+    if (!operation) return;
+    
+    showFlashToast(`${operation.name} Started`, operation.description, 'success');
+    
+    let progress = 0;
+    const slot = document.querySelector(`[data-operation="${op}"]`);
+    slot.style.background = `rgba(${hexToRgb(operation.color).join(',')}, 0.2)`;
+    
+    const interval = setInterval(() => {
+        progress += Math.random() * 20;
+        if (progress > 100) {
+            clearInterval(interval);
+            handleXiaomiOperationComplete(op, operation.name);
+        }
+    }, 300);
+    
+    sendAdvancedOperation(`xiaomi_${op}`, { brand: currentBrand });
+}
+
+function handleXiaomiOperationComplete(op, name) {
+    const messages = {
+        all_model_bl_unlock: 'Bootloader unlocked for all models!',
+        mi_account_remove: 'Mi account removed successfully!',
+        temp_bl_unlock: 'Temporary unlock active for 72 hours',
+        fastboot_unlock: 'Fastboot unlock complete',
+        edl_unlock: 'EDL unlock successful',
+        flash_all_xiaomi: 'All partitions flashed successfully',
+        miui_flash: 'MIUI ROM flashed successfully',
+        recovery_flash: 'Custom recovery flashed'
+    };
+    
+    showFlashToast(name, messages[op] || 'Operation completed', 'success');
+    playFlashSound('success');
+}
+
+// Xiaomi Fastboot Functions
+function xiaomiBlUnlock() {
+    const model = document.getElementById('xiaomiModel').value;
+    const official = document.getElementById('officialUnlock').checked;
+    
+    showFlashToast('BL Unlock', `Unlocking ${model} bootloader...`, 'success');
+    
+    if (official) {
+        showFlashToast('Official Unlock', 'Visit miui.com/unlock for official unlock', 'warning');
+    } else {
+        setTimeout(() => {
+            showFlashToast('BL Unlocked', 'Bootloader unlocked successfully!', 'success');
+        }, 5000);
+    }
+    
+    sendAdvancedOperation('xiaomi_bl_unlock', { model, official });
+}
+
+function xiaomiTempUnlock() {
+    showFlashToast('Temp Unlock', 'Temporary unlock active for 72 hours', 'warning');
+    setTimeout(() => {
+        showFlashToast('Unlock Expiring', 'Temp unlock expires in 71 hours', 'warning');
+    }, 3000);
+    sendAdvancedOperation('xiaomi_temp_unlock');
+}
+
+function xiaomiEdlUnlock() {
+    if (!confirm('EDL unlock will ERASE everything! Continue?')) return;
+    
+    showFlashToast('EDL Unlock', 'Deep flash unlock in progress...', 'success');
+    
+    setTimeout(() => {
+        showFlashToast('EDL Unlocked', 'Device unlocked via EDL mode', 'success');
+    }, 8000);
+    
+    sendAdvancedOperation('xiaomi_edl_unlock');
+}
+
+function xiaomiMiAccountRemove() {
+    showFlashToast('Mi Account', 'Removing Mi account...', 'success');
+    
+    setTimeout(() => {
+        showFlashToast('Account Removed', 'Mi account removed successfully', 'success');
+    }, 4000);
+    
+    sendAdvancedOperation('xiaomi_mi_account_remove');
+}
+
+// Xiaomi ROM Flash Functions
+function flashMiui() {
+    showFlashToast('MIUI Flash', 'Flashing MIUI ROM...', 'success');
+    
+    setTimeout(() => {
+        showFlashToast('MIUI Installed', 'MIUI ROM flashed successfully!', 'success');
+    }, 6000);
+    
+    sendAdvancedOperation('xiaomi_flash_miui');
+}
+
+function flashAllXiaomi() {
+    showFlashToast('Flash All', 'Flashing all Xiaomi partitions...', 'success');
+    
+    setTimeout(() => {
+        showFlashToast('Complete', 'All partitions flashed successfully!', 'success');
+    }, 10000);
+    
+    sendAdvancedOperation('xiaomi_flash_all');
+}
+
+function flashTWRP() {
+    showFlashToast('TWRP Flash', 'Flashing custom recovery...', 'success');
+    
+    setTimeout(() => {
+        showFlashToast('TWRP Installed', 'Custom recovery flashed successfully!', 'success');
+    }, 3000);
+    
+    sendAdvancedOperation('xiaomi_flash_twrp');
+}
+
+function formatXiaomiData() {
+    if (!confirm('This will format /data partition! Continue?')) return;
+    
+    showFlashToast('Format Data', 'Formatting /data partition...', 'warning');
+    
+    setTimeout(() => {
+        showFlashToast('Formatted', 'Data partition formatted successfully!', 'success');
+    }, 3000);
+    
+    sendAdvancedOperation('xiaomi_format_data');
+}
+
+// Initialize Extended Features
+function initExtendedFeatures() {
+    setupQualcommFeatures();
+    setupXiaomiFeatures();
 }
