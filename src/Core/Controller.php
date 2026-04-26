@@ -74,7 +74,7 @@ abstract class Controller
      */
     protected function view(string $view, array $data = []): ResponseInterface
     {
-        $viewPath = $this->app->config('paths.views', 'views') . "/{$view}.xhtml";
+        $viewPath = $this->app->config('paths.views', 'views') . "/{$view}.gsm.php";
 
         if (!file_exists($viewPath)) {
             throw new \RuntimeException("View not found: {$view}");

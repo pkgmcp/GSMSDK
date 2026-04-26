@@ -244,7 +244,7 @@ class MvcApplication extends Application
      */
     public function view(string $name, array $data = []): string
     {
-        $viewFile = $this->viewPath . '/' . str_replace('.', '/', $name) . '.xhtml';
+        $viewFile = $this->viewPath . '/' . str_replace('.', '/', $name) . '.gsm.php';
 
         if (!file_exists($viewFile)) {
             throw new \RuntimeException("View not found: {$name}");
