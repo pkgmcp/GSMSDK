@@ -276,11 +276,29 @@ class GSM
      */
     private function evaluate(string $compiledFile, array $data): string
     {
+        // Security: EXTR_SKIP prevents overwriting existing variables
         extract($data, EXTR_SKIP);
 
+        // Security: Prevent arbitrary file inclusion
+        if (!file_exists($compiledFile) || !is_readable($compiledFile)) {
+            throw new \RuntimeException('Template file not found or not readable');
+        }
+
+        // Security: Path validation - ensure template is within allowed directory
+        $realPath = realpath($compiledFile);
+        $cachePath = realpath($this->cachePath);
+        if ($realPath === false || $cachePath === false || strpos($realPath, $cachePath) !== 0) {
+            throw new \RuntimeException('Invalid template path');
+        }
+
         ob_start();
-        include $compiledFile;
-        $content = ob_get_clean();
+        try {
+            include $compiledFile;
+            $content = ob_get_clean();
+        } catch (\Throwable $e) {
+            ob_end_clean();
+            throw new \RuntimeException('Template rendering failed: ' . $e->getMessage(), 0, $e);
+        }
 
         // Handle layout extends
         if ($this->extends) {

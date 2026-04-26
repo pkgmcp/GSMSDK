@@ -125,3 +125,77 @@ For security-related questions, contact: security@gsmsdk.io
 ---
 
 *Last updated: 2026-04-26*
+
+## Flash Tool Security Considerations
+
+The web flash tool interfaces with device firmware at a low level. Follow these guidelines:
+
+### For Production Deployment
+
+⚠️ **WARNING**: Flash operations can brick devices. Only deploy in secure environments.
+
+- **Isolate flash operations**: Run on internal networks only, not publicly accessible
+- **Authentication**: Implement authentication middleware before flash routes
+- **Authorization**: Restrict flash operations to authorized users only
+- **HTTPS**: Always use HTTPS in production
+- **Session security**: Use secure, HttpOnly cookies for session management
+- **CSRF protection**: Ensure all flash operations require CSRF tokens
+
+### Security Features Included
+
+✅ CSRF token protection on all form submissions  
+✅ Input validation on all parameters  
+✅ Prepared statements for database operations  
+✅ Output escaping in templates ({{ }} vs {!! !!})  
+✅ Session-based authentication  
+✅ Path validation for template inclusion  
+✅ Error handling prevents information disclosure  
+
+### Flash Operation Safety
+
+⚠️ **CRITICAL**: Flash operations modify device firmware
+
+- Always verify device connection before flashing
+- Backup important data before flash operations
+- Use test devices, not production devices
+- Monitor flash operations actively
+- Have recovery procedures ready
+- Never flash untrusted firmware images
+
+### Security Testing
+
+Run security checks before deployment:
+
+```bash
+# Check for vulnerabilities
+composer require --dev enlightn/security-checker
+composer security:check
+
+# Code style and analysis
+./vendor/bin/php-cs-fixer fix --dry-run --diff
+
+# Static analysis (if configured)
+# ./vendor/bin/phpstan analyse
+```
+
+### Common Vulnerabilities to Watch For
+
+1. **Command Injection**: Never pass user input to shell commands
+2. **Path Traversal**: Validate all file paths
+3. **XSS**: Always escape output in templates
+4. **CSRF**: Use tokens on all state-changing operations
+5. **Session Fixation**: Regenerate session IDs after login
+6. **SQL Injection**: Always use parameterized queries
+
+## Contact
+
+**Security Email**: security@gsmsdk.io  
+**PGP Key**: [Will be published separately]
+
+---
+
+*Last updated: April 2026*
+
+## Credits
+
+Security improvements contributed by the GSMSDK community.
