@@ -440,3 +440,60 @@ echo $view->render('home', [
 ---
 
 **GSM** makes templating clean, fast, and enjoyable! 🚀
+
+## 🧪 Testing
+
+### Test Suite
+
+GSMSDK uses PHPUnit-style tests with Pest-inspired syntax.
+
+```bash
+# Run all tests
+vendor/bin/phpunit
+
+# Run specific test class
+vendor/bin/phpunit tests/Unit/Core/ApplicationTest
+
+# Run with coverage
+vendor/bin/phpunit --coverage-html coverage/
+```
+
+### Test Categories
+
+| Category | Tests | Lines |
+|----------|-------|-------|
+| Core/Application | 8 | 260 |
+| Core/View | 12 | 460 |
+| Core/Auth | 15 | 507 |
+| HTTP/Request | 20 | 523 |
+| HTTP/Response | 13 | 528 |
+| Database/Connection | 9 | 606 |
+| Database/QueryBuilder | 24 | 1,048 |
+| Engine/GsmTest | - | - |
+| MvcApplication | - | - |
+| **Total** | **7+ tests** | **1,571+ lines** |
+
+### Sample Test
+
+```php
+public function it_filters_with_where_clause(): void {
+    $results = $this->builder->table('users')
+        ->where('age', '>', 25)
+        ->get();
+    
+    $this->assertCount(2, $results);
+}
+```
+
+### Pest Configuration
+
+```php
+// tests/Pest.php
+beforeEach(function () {
+    $this->app = new Application([
+        'debug' => true,
+        'environment' => 'testing'
+    ]);
+});
+```
+
