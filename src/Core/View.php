@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace GSMSDK\Core;
 
+use GSMSDK\Core\Engine\GSM;
 use GSMSDK\Exceptions\\ValidationException;
 
 /**
- * View renderer with TheGridCN theme support
+ * View renderer with GSM engine and TheGridCN theme support
  *
- * Renders XHTML views with modern styling
+ * Renders GSM templates (similar to Blade) with modern styling
  */
 class View
 {
@@ -25,10 +26,14 @@ class View
     /** @var string Current theme */
     private string $theme = 'thegridcn';
 
+    /** @var GSM Template engine */
+    private GSM $engine;
+
     public function __construct(string $viewPath, string $layoutPath = '')
     {
         $this->viewPath = rtrim($viewPath, '/');
         $this->layoutPath = $layoutPath ? rtrim($layoutPath, '/') : $viewPath . '/layouts';
+        $this->engine = new GSM($this->viewPath . '/cache');
     }
 
     /**
@@ -57,19 +62,14 @@ class View
      */
     public function render(string $view, array $data = [], ?string $layout = null): string
     {
-        $viewFile = $this->viewPath . '/' . $this->normalizePath($view) . '.xhtml';
-
-        if (!file_exists($viewFile)) {
-            throw new \RuntimeException("View not found: {$viewFile}");
-        }
-
-        $content = $this->renderFile($viewFile, $data);
-
+        $data = array_merge(self::$sharedData, $data);
+        
         if ($layout !== null) {
-            $content = $this->renderLayout($layout, array_merge($data, ['content' => $content]));
+            $data['content'] = $this->engine->render($view, $data);
+            return $this->engine->render('layouts/' . $layout, $data);
         }
 
-        return $content;
+        return $this->engine->render($view, $data);
     }
 
     /**
@@ -79,13 +79,8 @@ class View
      */
     public function renderLayout(string $layout, array $data = []): string
     {
-        $layoutFile = $this->layoutPath . '/' . $this->normalizePath($layout) . '.xhtml';
-
-        if (!file_exists($layoutFile)) {
-            throw new \RuntimeException("Layout not found: {$layoutFile}");
-        }
-
-        return $this->renderFile($layoutFile, $data);
+        $data = array_merge(self::$sharedData, $data);
+        return $this->engine->render('layouts/' . $layout, $data);
     }
 
     /**
@@ -95,36 +90,8 @@ class View
      */
     public function partial(string $partial, array $data = []): string
     {
-        $partialFile = $this->viewPath . '/partials/' . $this->normalizePath($partial) . '.xhtml';
-
-        if (!file_exists($partialFile)) {
-            throw new \RuntimeException("Partial not found: {$partialFile}");
-        }
-
-        return $this->renderFile($partialFile, $data);
-    }
-
-    /**
-     * Render file with data extraction
-     *
-     * @param  array<string, mixed>  $data
-     */
-    private function renderFile(string $file, array $data): string
-    {
         $data = array_merge(self::$sharedData, $data);
-        extract($data, EXTR_SKIP);
-
-        ob_start();
-        include $file;
-        return ob_get_clean();
-    }
-
-    /**
-     * Normalize view path
-     */
-    private function normalizePath(string $path): string
-    {
-        return str_replace(['.', '\\'], '/', $path);
+        return $this->engine->render('partials/' . $partial, $data);
     }
 
     /**
@@ -142,9 +109,11 @@ class View
             'theme-color' => '#6366f1',
         ], $meta);
 
-        ob_start();
-        include $this->layoutPath . '/thegridcn.xhtml';
-        return ob_get_clean();
+        return $this->engine->render('layouts/thegridcn', array_merge($data, [
+            'title' => $title,
+            'content' => $content,
+            'meta' => $meta,
+        ]));
     }
 
     /**
