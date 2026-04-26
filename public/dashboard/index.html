@@ -1,0 +1,1161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GSMSDK Mobile Repair Dashboard</title>
+    <style>
+        :root {
+            --bg-primary: #0f0f0f;
+            --bg-secondary: #1a1a1a;
+            --bg-tertiary: #2a2a2a;
+            --text-primary: #e0e0e0;
+            --text-secondary: #a0a0a0;
+            --accent-blue: #00a8ff;
+            --accent-green: #00d97e;
+            --accent-red: #ff4757;
+            --accent-yellow: #ffd32a;
+            --border-color: #333;
+            --success: #2ed573;
+            --warning: #ffa502;
+            --danger: #ff4757;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow-x: hidden;
+        }
+
+        /* Background Animation */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.1;
+        }
+
+        .grid-overlay {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(0, 168, 255, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 168, 255, 0.1) 1px, transparent 1px);
+            background-size: 50px 50px;
+            animation: gridMove 20s linear infinite;
+        }
+
+        @keyframes gridMove {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(50px, 50px); }
+        }
+
+        .glow-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(100px);
+            animation: float 10s ease-in-out infinite;
+        }
+
+        .glow-orb:nth-child(1) {
+            width: 300px;
+            height: 300px;
+            background: var(--accent-blue);
+            top: 10%;
+            left: 10%;
+            animation-delay: 0s;
+        }
+
+        .glow-orb:nth-child(2) {
+            width: 400px;
+            height: 400px;
+            background: var(--accent-green);
+            bottom: 10%;
+            right: 10%;
+            animation-delay: -5s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(30px, 30px); }
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+            border-bottom: 2px solid var(--border-color);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-green));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: white;
+            box-shadow: 0 0 20px var(--accent-blue);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 20px var(--accent-blue); }
+            50% { box-shadow: 0 0 40px var(--accent-blue); }
+        }
+
+        .logo-text h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-green));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .logo-text p {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .status-bar {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .device-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--bg-tertiary);
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            animation: blink 1.5s ease-in-out infinite;
+        }
+
+        .status-dot.connected {
+            background: var(--success);
+        }
+
+        .status-dot.disconnected {
+            background: var(--danger);
+        }
+
+        .status-dot.flash-mode {
+            background: var(--accent-yellow);
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .connect-btn {
+            background: linear-gradient(135deg, var(--accent-blue), #0077cc);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .connect-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 168, 255, 0.3);
+        }
+
+        .connect-btn:active {
+            transform: translateY(0);
+        }
+
+        .connect-btn:disabled {
+            background: var(--border-color);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Main Container */
+        .main-container {
+            display: flex;
+            min-height: calc(100vh - 80px);
+        }
+
+        /* Tab Navigation */
+        .tab-nav {
+            width: 80px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            padding: 2rem 0;
+            gap: 0.5rem;
+        }
+
+        .tab-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 1.5rem 0;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            font-size: 0.7rem;
+        }
+
+        .tab-btn:hover {
+            background: rgba(0, 168, 255, 0.1);
+            color: var(--text-primary);
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(180deg, rgba(0, 168, 255, 0.2) 0%, transparent 100%);
+            color: var(--accent-blue);
+            font-weight: 600;
+        }
+
+        .tab-btn.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 3px;
+            height: 30px;
+            background: var(--accent-blue);
+            border-radius: 0 3px 3px 0;
+        }
+
+        .tab-icon {
+            font-size: 1.5rem;
+            line-height: 1;
+        }
+
+        /* Content Area */
+        .content-area {
+            flex: 1;
+            padding: 2rem;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Cards */
+        .card {
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            border-color: rgba(0, 168, 255, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--accent-blue), transparent);
+            opacity: 0.5;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-icon {
+            width: 48px;
+            height: 48px;
+            background: rgba(0, 168, 255, 0.1);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: var(--accent-blue);
+        }
+
+        .card-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .card-subtitle {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        /* Device Info */
+        .device-info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .info-item {
+            background: var(--bg-tertiary);
+            padding: 1rem;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .info-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.5rem;
+        }
+
+        .info-value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .info-value.serial {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+
+        /* Status Badges */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background: rgba(46, 213, 115, 0.2);
+            color: var(--success);
+        }
+
+        .badge-warning {
+            background: rgba(255, 211, 42, 0.2);
+            color: var(--accent-yellow);
+        }
+
+        .badge-danger {
+            background: rgba(255, 71, 87, 0.2);
+            color: var(--danger);
+        }
+
+        .badge-info {
+            background: rgba(0, 168, 255, 0.2);
+            color: var(--accent-blue);
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-blue), #0077cc);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 168, 255, 0.3);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--success), #27ae60);
+            color: white;
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, var(--accent-yellow), #e8a800);
+            color: #333;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger), #c0392b);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--accent-blue);
+            color: var(--accent-blue);
+        }
+
+        .btn-small {
+            padding: 0.5rem 1rem;
+            font-size: 0.75rem;
+        }
+
+        .btn-large {
+            padding: 1rem 2rem;
+            font-size: 1rem;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        /* Progress Bar */
+        .progress-bar-container {
+            background: var(--bg-tertiary);
+            border-radius: 10px;
+            overflow: hidden;
+            height: 8px;
+            margin: 1rem 0;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-blue), var(--accent-green));
+            border-radius: 10px;
+            transition: width 0.3s ease;
+            position: relative;
+        }
+
+        .progress-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .progress-text {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .progress-text .percentage {
+            color: var(--accent-blue);
+            font-weight: 600;
+        }
+
+        /* Terminal */
+        .terminal-container {
+            background: #0a0a0a;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        .terminal-header {
+            background: var(--bg-tertiary);
+            padding: 0.75rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .terminal-dots {
+            display: flex;
+            gap: 0.25rem;
+        }
+
+        .terminal-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .terminal-dot.red { background: #ff5f56; }
+        .terminal-dot.yellow { background: #ffbd2e; }
+        .terminal-dot.green { background: #27c93f; }
+
+        .terminal-title {
+            flex: 1;
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        #terminalOutput {
+            height: 300px;
+            overflow-y: auto;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+
+        .terminal-line {
+            margin-bottom: 0.25rem;
+        }
+
+        .terminal-prompt {
+            color: var(--accent-green);
+        }
+
+        .terminal-output {
+            color: var(--text-primary);
+        }
+
+        .terminal-error {
+            color: var(--danger);
+        }
+
+        #terminalInput {
+            width: 100%;
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            padding: 0.5rem 1rem;
+            outline: none;
+        }
+
+        /* Flash Tool */
+        .flash-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .flash-slot {
+            background: var(--bg-tertiary);
+            border: 2px dashed var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .flash-slot:hover {
+            border-color: var(--accent-blue);
+        }
+
+        .flash-slot.drag-over {
+            border-color: var(--accent-green);
+            background: rgba(0, 217, 126, 0.1);
+        }
+
+        .flash-slot.filled {
+            border-color: var(--success);
+            border-style: solid;
+        }
+
+        .flash-slot-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .flash-slot-name {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .flash-slot-status {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .flash-slot-file {
+            font-size: 0.75rem;
+            color: var(--accent-green);
+            margin-top: 0.5rem;
+            word-break: break-all;
+        }
+
+        /* Log Output */
+        .log-container {
+            background: #0a0a0a;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        .log-header {
+            background: var(--bg-tertiary);
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .log-title {
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        .log-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        #logOutput {
+            height: 200px;
+            overflow-y: auto;
+            padding: 1rem;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.75rem;
+            line-height: 1.4;
+        }
+
+        .log-entry {
+            margin-bottom: 0.25rem;
+            animation: slideIn 0.2s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .log-time {
+            color: var(--text-secondary);
+            margin-right: 0.5rem;
+        }
+
+        .log-info { color: var(--accent-blue); }
+        .log-success { color: var(--success); }
+        .log-warning { color: var(--accent-yellow); }
+        .log-error { color: var(--danger); }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-card {
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            padding: 1rem;
+            text-align: center;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            border-color: var(--accent-blue);
+            transform: translateY(-2px);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-green));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 0.85rem;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        .form-input:focus {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(0, 168, 255, 0.1);
+        }
+
+        .form-select {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 0.85rem;
+            cursor: pointer;
+            outline: none;
+        }
+
+        .form-select:focus {
+            border-color: var(--accent-blue);
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .checkbox {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--accent-blue);
+        }
+
+        .checkbox-label {
+            font-size: 0.85rem;
+            color: var(--text-primary);
+            cursor: pointer;
+        }
+
+        /* Toggle Switch */
+        .toggle {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 26px;
+        }
+
+        .toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: '';
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background: var(--text-secondary);
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        .toggle input:checked + .toggle-slider {
+            background: var(--accent-blue);
+            border-color: var(--accent-blue);
+        }
+
+        .toggle input:checked + .toggle-slider:before {
+            transform: translateX(24px);
+            background: white;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .status-bar {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .main-container {
+                flex-direction: column;
+            }
+
+            .tab-nav {
+                width: 100%;
+                flex-direction: row;
+                padding: 0;
+            }
+
+            .tab-btn {
+                flex-direction: row;
+                padding: 1rem;
+                font-size: 0.75rem;
+            }
+
+            .tab-btn.active::before {
+                left: 50%;
+                top: 0;
+                transform: translateX(-50%);
+                width: 30px;
+                height: 3px;
+                border-radius: 0 0 3px 3px;
+            }
+
+            .content-area {
+                padding: 1rem;
+            }
+
+            .flash-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .device-info-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Loading Animation */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border-color);
+            border-radius: 50%;
+            border-top-color: var(--accent-blue);
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Hidden */
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Background Animation -->
+    <div class="bg-animation">
+        <div class="grid-overlay"></div>
+        <div class="glow-orb"></div>
+        <div class="glow-orb"></div>
+    </div>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="logo">
+            <div class="logo-icon">G</div>
+            <div class="logo-text">
+                <h1>GSMSDK Dashboard</h1>
+                <p>Mobile Repair Platform v2.0</p>
+            </div>
+        </div>
+        <div class="status-bar">
+            <div class="device-indicator">
+                <div class="status-dot disconnected" id="statusDot"></div>
+                <span id="statusText">Disconnected</span>
+            </div>
+            <button class="connect-btn" id="connectBtn" onclick="connectDevice()">
+                Connect Device
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Tab Navigation -->
+        <nav class="tab-nav">
+            <button class="tab-btn active" onclick="switchTab('device')" data-tab="device">
+                <span class="tab-icon">📱</span>
+                <span>Device</span>
+            </button>
+            <button class="tab-btn" onclick="switchTab('adb')" data-tab="adb">
+                <span class="tab-icon">🔧</span>
+                <span>ADB</span>
+            </button>
+            <button class="tab-btn" onclick="switchTab('fastboot')" data-tab="fastboot">
+                <span class="tab-icon">⚡</span>
+                <span>Fastboot</span>
+            </button>
+            <button class="tab-btn" onclick="switchTab('samsung')" data-tab="samsung">
+                <span class="tab-icon">📲</span>
+                <span>Samsung</span>
+            </button>
+            <button class="tab-btn" onclick="switchTab('logs')" data-tab="logs">
+                <span class="tab-icon">📋</span>
+                <span>Logs</span>
+            </button>
+        </nav>
+
+        <!-- Content Area -->
+        <main class="content-area">
+            
+            <!-- Device Info Tab -->
+            <div class="tab-content active" id="tab-device">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon">📱</div>
+                        <div>
+                            <div class="card-title">Device Information</div>
+                            <div class="card-subtitle">Connected device details</div>
+                        </div>
+                    </div>
+                    <div class="device-info-grid">
+                        <div class="info-item">
+                            <div class="info-label">Model</div>
+                            <div class="info-value" id="deviceModel">--</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Serial Number</div>
+                            <div class="info-value serial" id="deviceSerial">--</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Status</div>
+                            <div class="info-value"><span class="badge badge-warning" id="deviceStatus">Disconnected</span></div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Manufacturer</div>
+                            <div class="info-value" id="deviceManufacturer">--</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Mode</div>
+                            <div class="info-value" id="deviceMode">--</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Knox Status</div>
+                            <div class="info-value" id="deviceKnox">--</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Battery</div>
+                            <div class="info-value" id="deviceBattery">--</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Android Version</div>
+                            <div class="info-value" id="deviceAndroid">--</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="statFlashes">0</div>
+                        <div class="stat-label">Total Flashes</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statSuccess">0</div>
+                        <div class="stat-label">Successful</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statFailed">0</div>
+                        <div class="stat-label">Failed</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statTime">0h</div>
+                        <div class="stat-label">Total Time</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ADB Tab -->
+            <div class="tab-content" id="tab-adb">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon">🔧</div>
+                        <div>
+                            <div class="card-title">ADB Toolset</div>
+                            <div class="card-subtitle">Android Debug Bridge operations</div>
+                        </div>
+                    </div>
+                    
+                    <div class="btn-group" style="margin-bottom: 1.5rem;">
+                        <button class="btn btn-success btn-small" onclick="executeAdbCommand('shell', 'reboot')">
+                            Reboot System
+                        </button>
+                        <button class="btn btn-warning btn-small" onclick="executeAdbCommand('shell', 'reboot recovery')">
+                            Reboot Recovery
+                        </button>
+                        <button class="btn btn-warning btn-small" onclick="executeAdbCommand('shell', 'reboot bootloader')">
+                            Reboot Bootloader
+                        </button>
+                        <button class="btn btn-primary btn-small" onclick="executeAdbCommand('sideload')">
+                            Sideload OTA
+                        </button>
+                        <button class="btn btn-danger btn-small" onclick="removeFrp()">
+                            Remove FRP
+                        </button>
+                    </div>
+
+                    <div class="card" style="margin-top: 1.5rem;">
+                        <div class="card-header">
+                            <div class="card-icon">📄</div>
+                            <div>
+                                <div class="card-title">Terminal Output</div>
+                                <div class="card-subtitle">ADB shell command responses</div>
+                            </div>
+                        </div>
+                        <div id="adbOutput" style="background: #0a0a0a; border-radius: 8px; padding: 1rem; font-family: 'Courier New', monospace; font-size: 0.85rem; min-height: 200px; max-height: 400px; overflow-y: auto;">
+                            <div style="color: #666;">Enter ADB commands above to see output here...</div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 1.5rem;">
+                        <div class="card-header">
+                            <div class="card-icon">🚀</div>
+                            <div>
+                                <div class="card-title">Quick Actions</div>
+                                <div class="card-subtitle">Common ADB operations</div>
+                            </div>
+                        </div>
+                        <div class="btn-group">
+                            <button class="btn btn-secondary btn-small" onclick="runAdbQuickCommand('shell pm list packages')">List Packages</button>
+                            <button class="btn btn-secondary btn-small" onclick="runAdbQuickCommand('shell dumpsys battery')">Battery Info</button>
+                            <button class="btn btn-secondary btn-small" onclick="runAdbQuickCommand('shell screencap -p /sdcard/screen.png')">Screenshot</button>
+                            <button class="btn btn-secondary btn-small" onclick="runAdbQuickCommand('shell getprop ro.build.version.release')">Android Version</button>
+                            <button class="btn btn-secondary btn-small" onclick="runAdbQuickCommand('devices')">Connected Devices</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fastboot Tab -->
+            <div class="tab-content" id="tab-fastboot">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon">⚡</div>
+                        <div>
+                            <div class="card-title">Fastboot Flasher</div>
+                            <div class="card-subtitle">Partition-level firmware flashing</div>
+                        </div>
+                    </div>
+
+                    <div class="flash-grid">
+                        <div class="flash-slot" data-partition="boot" ondragover="handleDragOver(event)" ondrop="handleFileDrop(event)">
+                            <div class="flash-slot-icon">🔄</div>
+                            <div class="flash-slot-name">Boot</div>
+                            <div class="flash-slot-status">Drag & drop .img file</div>
+                        </div>
+                        <div class="flash-slot" data-partition="recovery" ondragover="handleDragOver(event)" ondrop="handleFileDrop(event)">
+                            <div class="flash-slot-icon">🛠️</div>
+                            <div class="flash-slot-name">Recovery</div>
+                            <div class="flash-slot-status">Drag & drop .img file</div>
+                        </div>
+                        <div class="flash-slot" data-partition="system" ondragover="handleDragOver(event)" ondrop="handleFileDrop(event)">
+                            <div class="flash-slot-icon">📱</div>
+                            <div class="flash-slot-name">System</div>
+                            <div class="flash-slot-status">Drag & drop .img file</div>
+                        </div>
+                        <div class="flash-slot" data-partition="vendor" ondragover="handleDragOver(event)" ondrop="handleFileDrop(event)">
+                            <div class="flash-slot-icon">💾</div>
+                            <div class="flash-slot-name">Vendor</div>
+                            <div class="flash-slot-status">Drag & drop .img file</div>
+                        </div>
+                        <div class="flash-slot" data-partition="product" ondragover="handleDragOver(event)" ondrop="handleFileDrop(event)">
+                            <div class="flash-slot-icon">📦</div>
+                            <div class="flash-slot-name">Product</div>
+                            <div class="flash-slot-status">Drag & drop .img file</div>
+                        </div>
+                        <div class="flash-slot" data-partition="vbmeta" ondragover="handleDragOver(event)" ondrop="handleFileDrop(event)">
+                            <div class="flash-slot-icon">🔒</div>
+                            <div class="flash-slot-name">VBMeta</div>
