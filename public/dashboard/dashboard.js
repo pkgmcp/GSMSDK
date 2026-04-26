@@ -4,10 +4,30 @@ let deviceConnected = false;
 let currentDeviceMode = 'disconnected';
 let currentTab = 'device';
 let flashQueue = [];
+
+// Global State
+let ws = null;
+let deviceConnected = false;
+let currentDeviceMode = "disconnected";
+let currentTab = "device";
+let flashQueue = [];
+let isFlashing = false;
+let currentBrand = "xiaomi";
+
+// Supported brands
+const SUPPORTED_BRANDS = {
+    xiaomi: { name: "Xiaomi", color: "#ff6700" },
+    google: { name: "Google", color: "#4285f4" },
+    samsung: { name: "Samsung", color: "#1428a0" },
+    asus: { name: "ASUS", color: "#ff0000" },
+    motorola: { name: "Motorola", color: "#ff6600" }
+};
+
 let isFlashing = false;
 
 // Initialize dashboard
 function initDashboard() {
+    selectBrand("xiaomi");
     setupEventListeners();
     setupWebSocket();
     setupWorkers();
@@ -476,6 +496,9 @@ function handleDragLeave(e) {
 
 // Handle file drop
 function handleFileDrop(e) {
+
+        // Use brand-specific simulation
+        simulateBrandFlash(partition, currentBrand);
     e.preventDefault();
     e.currentTarget.classList.remove('drag-over');
 
@@ -854,3 +877,202 @@ window.flashFastbootPartition = flashFastbootPartition;
 window.loadSamsungFlasher = loadSamsungFlasher;
 window.clearFlashSlots = clearFlashSlots;
 window.startFlashing = startFlashing;
+// Show toast notification for flash completion
+function showFlashToast(title, message, type = 'success') {
+    const toast = document.createElement('div');
+    toast.className = `flash-toast flash-toast-${type}`;
+    toast.innerHTML = `
+        <div class="toast-icon">${type === 'success' ? '✅' : type === 'warning' ? '⚠️' : '❌'}</div>
+        <div class="toast-content">
+            <div class="toast-title">${title}</div>
+            <div class="toast-message">${message}</div>
+        </div>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    // Animate in
+    setTimeout(() => toast.classList.add('show'), 10);
+    
+    // Remove after 5 seconds
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+    }, 5000);
+}
+
+// Update flash progress with brand-specific styling
+function updateFlashProgress(partition, progress, brand) {
+    const brandColor = SUPPORTED_BRANDS[brand]?.color || '#00a8ff';
+    const percentageEl = document.querySelector(`[data-partition="${partition}"] .percentage`);
+    
+    if (percentageEl) {
+        percentageEl.textContent = Math.round(progress) + '%';
+        percentageEl.style.color = brandColor;
+    }
+    
+    const progressBar = document.querySelector(`[data-partition="${partition}"] .progress-bar`);
+    if (progressBar) {
+        progressBar.style.width = progress + '%';
+        progressBar.style.background = `linear-gradient(90deg, ${brandColor}, ${brandColor}dd)`;
+    }
+}
+
+// Complete flash with notification
+function completeFlashWithNotification(partition, brand) {
+    const brandName = SUPPORTED_BRANDS[brand]?.name || 'Generic';
+    
+    showFlashToast(
+        'Flash Complete ✨',
+        `${brandName} ${partition} partition flashed successfully!`,
+        'success'
+    );
+    
+    // Update stats
+    const flashesEl = document.getElementById('statFlashes');
+    const successEl = document.getElementById('statSuccess');
+    if (flashesEl) flashesEl.textContent = parseInt(flashesEl.textContent || 0) + 1;
+    if (successEl) successEl.textContent = parseInt(successEl.textContent || 0) + 1;
+    
+    // Play success sound
+    playFlashSound('success');
+}
+
+// Play notification sound
+function playFlashSound(type) {
+    // Create audio context for feedback
+    if ('AudioContext' in window || 'webkitAudioContext' in window) {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        if (type === 'success') {
+            oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime);
+            oscillator.frequency.setValueAtTime(659.25, audioContext.currentTime + 0.1);
+            oscillator.frequency.setValueAtTime(783.99, audioContext.currentTime + 0.2);
+        } else if (type === 'error') {
+            oscillator.frequency.setValueAtTime(200, audioContext.currentTime);
+            oscillator.frequency.setValueAtTime(150, audioContext.currentTime + 0.2);
+        }
+        
+        gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.3);
+    }
+}
+
+// Update brand display
+function updateBrandDisplay(brand) {
+    const brandDisplay = document.getElementById('currentBrand') || createBrandDisplay();
+    const brandInfo = SUPPORTED_BRANDS[brand] || SUPPORTED_BRANDS.xiaomi;
+    
+    brandDisplay.textContent = brandInfo.name;
+    brandDisplay.style.color = brandInfo.color;
+    currentBrand = brand;
+}
+
+// Create brand display element
+function createBrandDisplay() {
+    const display = document.createElement('div');
+    display.id = 'currentBrand';
+    display.style.cssText = 'font-weight: 600; padding: 0.5rem 1rem; border-radius: 20px; background: var(--bg-tertiary);';
+    
+    const deviceInfo = document.querySelector('.device-info-grid');
+    if (deviceInfo) {
+        deviceInfo.appendChild(display);
+    }
+    
+    return display;
+}
+
+// Select brand for flash operations
+function selectBrand(brand) {
+    if (!SUPPORTED_BRANDS[brand]) return;
+    
+    currentBrand = brand;
+    const brandInfo = SUPPORTED_BRANDS[brand];
+    
+    // Update active button
+    document.querySelectorAll('.brand-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    const selectedBtn = document.querySelector(`.brand-${brand}`);
+    if (selectedBtn) {
+        selectedBtn.classList.add('active');
+    }
+    
+    // Update display
+    const display = document.getElementById('selectedBrandDisplay');
+    if (display) {
+        display.textContent = brandInfo.name;
+        display.style.color = brandInfo.color;
+    }
+    
+    // Update flash tabs with brand colors
+    updateBrandSpecificStyles(brandInfo.color);
+    
+    showFlashToast(
+        'Brand Selected',
+        `${brandInfo.name} mode activated`,
+        'success'
+    );
+}
+
+// Update brand-specific styles
+function updateBrandSpecificStyles(color) {
+    // Update progress bars
+    document.querySelectorAll('.progress-bar').forEach(bar => {
+        bar.style.background = `linear-gradient(90deg, ${color}, ${color}dd)`;
+    });
+    
+    // Update flash slots
+    document.querySelectorAll('.flash-slot.filled').forEach(slot => {
+        slot.style.borderColor = color;
+    });
+}
+
+// Update flash progress with brand
+function handleFlashProgress(partition, progress) {
+    const brandColor = SUPPORTED_BRANDS[currentBrand]?.color || '#00a8ff';
+    const percentageEl = document.querySelector(`[data-partition="${partition}"] .percentage`);
+    
+    if (percentageEl) {
+        percentageEl.textContent = Math.round(progress) + '%';
+        percentageEl.style.color = brandColor;
+    }
+    
+    const progressBar = document.querySelector(`[data-partition="${partition}"] .progress-bar`);
+    if (progressBar) {
+        progressBar.style.width = progress + '%';
+    }
+}
+
+// Simulate full flash with notifications
+function simulateBrandFlash(partition, brand) {
+    const brandName = SUPPORTED_BRANDS[brand]?.name || 'Generic';
+    
+    showFlashToast(
+        'Flash Started ⚡',
+        `${brandName} ${partition} partition flashing...`,
+        'success'
+    );
+    
+    let progress = 0;
+    const interval = setInterval(() => {
+        progress += Math.random() * 15;
+        if (progress > 100) progress = 100;
+        
+        handleFlashProgress(partition, progress);
+        
+        if (progress >= 100) {
+            clearInterval(interval);
+            completeFlashWithNotification(partition, brand);
+        }
+    }, 200);
+}
