@@ -134,3 +134,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 **GSMSDK** - Full-Stack PHP Framework for Desktop & Mobile Applications
 
 MIT License - Copyright (c) 2026 GSMSDK Team
+
+## [Unreleased] - 2026-04-26
+
+### Added
+- 🎨 GSM Templating Engine (Blade-inspired)
+  - Template compilation with caching
+  - Directives: @if, @foreach, @for, @while, @include, @extends, @section
+  - Echo statements: {{ }} (escaped) and {!! !!} (raw)
+  - Control structures: @unless, @auth, @guest, @can, @isset, @empty
+  - CSRF protection: @csrf, Method spoofing: @method
+  - PHP blocks: @php, Dump helpers: @dump, @dd
+  - Error handling: @error, Selected/checked helpers
+  - Component support: @component / @endcomponent
+  - Layout inheritance with @yield and @parent
+
+### Modified
+- Updated View class to use GSM engine
+- Front controller updated to demonstrate GSM templates
+- Enhanced documentation with GSM syntax guide
+
+### Examples
+- main.gsm.php - Main layout template
+- home.gsm.php - Home page with GSM features
+- example.gsm.php - GSM syntax demonstrations
+- GsmDemoController.php - Demo controller for templates

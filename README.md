@@ -263,3 +263,180 @@ MIT License - see [LICENSE](LICENSE) file.
 [![Discord](https://img.shields.io/badge/Discord-Join-blue?logo=discord)](https://discord.gg/gsmsdk)  
 [![Documentation](https://img.shields.io/badge/Docs-Read-blue)](https://gsmsdk.io/docs)  
 [![Issues](https://img.shields.io/badge/Issues-Report-red)](https://github.com/pkgmcp/gsmsdk/issues)
+
+## 🎨 GSM Templating Engine
+
+GSMSDK includes a powerful templating engine called **GSM** (GSMSDK Template), inspired by Laravel's Blade. It provides a clean, concise syntax while compiling to optimized PHP code.
+
+### Syntax Overview
+
+#### Echo Statements
+
+```php
+{{ $variable }}      {# Escaped output #}
+{!! $html !!}        {# Raw output #}
+@php($code)          {# Execute PHP #}
+```
+
+#### Control Structures
+
+```php
+@if ($condition)
+  // if block
+@elseif ($other)
+  // elseif block
+@else
+  // else block
+@endif
+
+@unless ($condition)
+  // unless block
+@endunless
+
+@foreach ($items as $item)
+  {{ $item }}
+@endforeach
+
+@for ($i = 0; $i < 10; $i++)
+  {{ $i }}
+@endfor
+
+@while ($condition)
+  // while block
+@endwhile
+```
+
+#### Template Inheritance
+
+```php
+{{-- resources/views/layouts/main.gsm.php --}}
+<!DOCTYPE html>
+<html>
+<head>
+  <title>{{ $title }}</title>
+</head>
+<body>
+  @yield('content')
+</body>
+</html>
+
+{{-- resources/views/home.gsm.php --}}
+@extends('layouts/main')
+
+@section('content')
+  <h1>Welcome!</h1>
+@endsection
+```
+
+#### Components & Slots
+
+```php
+{{-- Using components --}}
+@component('components.card')
+  This is the slot content!
+@endcomponent
+```
+
+#### Includes
+
+```php
+@include('partials.header')
+@include('partials.nav')
+@include('partials.footer')
+```
+
+#### Forms & Security
+
+```php
+<form method="POST">
+  @csrf
+  <input type="text" name="username">
+  <button type="submit">Submit</button>
+</form>
+
+<form method="POST">
+  @method('PUT')
+  <button>Update</button>
+</form>
+```
+
+#### Auth & Session
+
+```php
+@auth
+  <p>User is authenticated</p>
+@endauth
+
+@guest
+  <p>User is a guest</p>
+@endguest
+```
+
+#### Error Handling
+
+```php
+@error('email')
+  <span class="error">{{ $errors['email'] }}</span>
+@enderror
+```
+
+#### Helpers
+
+```php
+@selected($a == $b)     {# selected="selected" #}
+@checked($active)       {# checked="checked" #}
+@isset($variable)       {# Check if set #}
+@empty($variable)       {# Check if empty #}
+@can('edit-post')       {# Check ability #}
+@endcan
+```
+
+#### Dump & Debug
+
+```php
+@dump($variable)        {# Dump variable #}
+@dd($variable)          {# Dump and die #}
+```
+
+### Performance
+
+GSM templates are **compiled to native PHP code** and cached for maximum performance. The compilation happens only when templates are modified.
+
+### Features
+
+✅ Blade-inspired syntax  
+✅ Template inheritance with `@extends`  
+✅ Components and slots  
+✅ Control structures (if, foreach, for, while)  
+✅ Partial includes  
+✅ CSRF protection  
+✅ Auth directives  
+✅ Error handling  
+✅ Helper functions  
+✅ Compiled caching  
+✅ Type-safe  
+✅ IDE-friendly  
+
+### Examples
+
+See the included templates:
+- `resources/views/layouts/main.gsm.php` - Main layout
+- `resources/views/home.gsm.php` - Home page
+- `resources/views/example.gsm.php` - Syntax examples
+
+### Usage
+
+```php
+use GSMSDK\Core\View;
+
+$view = new View('resources/views', 'resources/views/layouts');
+
+echo $view->render('home', [
+    'title' => 'My Page',
+    'items' => ['Apple', 'Banana', 'Cherry'],
+]);
+```
+
+---
+
+**GSM** makes templating clean, fast, and enjoyable! 🚀
