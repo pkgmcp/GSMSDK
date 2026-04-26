@@ -31,6 +31,14 @@ return function (Router $router) {
             $router->get('/google/ota', [FirmwareController::class, 'googleOtaUpdates']);
             $router->get('/google/models', [FirmwareController::class, 'googleModels']);
             
+            // Lenovo specific endpoints
+            $router->get('/lenovo/stock', [FirmwareController::class, 'lenovoStock']);
+            $router->get('/lenovo/unbrick', [FirmwareController::class, 'lenovoUnbrick']);
+            
+            // OnePlus specific endpoints
+            $router->get('/oneplus/unbrick', [FirmwareController::class, 'oneplusUnbrick']);
+            $router->get('/oneplus/stock', [FirmwareController::class, 'oneplusStock']);
+            
             // Admin routes
             $router->post('/', [FirmwareController::class, 'create']);
             $router->put('/{id}', [FirmwareController::class, 'update']);

@@ -196,6 +196,169 @@ class FirmwareSeeder extends Seeder {
                 ];
             });
         
+        // Motorola devices
+        $this->factory(\GSMSDK\Models\Firmware::class)
+            ->count(12)
+            ->create(function (FirmwareFactory $f) {
+                $models = ['Edge 40', 'Razr 40', 'Razr 50', 'Moto G84', 'G Power 2023', 'E13', 'G23', 'G53'];
+                $f->state([
+                    'brand' => 'motorola',
+                    'model' => $f->faker()->randomElement($models),
+                    'firmware_type' => 'official',
+                    'region' => $f->faker()->randomElement(['WW', 'LA', 'BR', 'IN', null])
+                ]);
+            });
+        
+        // Lenovo devices (unbrick firmware from mirrors.lolinet.com)
+        $this->factory(\GSMSDK\Models\Firmware::class)
+            ->count(20)
+            ->create(function (FirmwareFactory $f) {
+                $models = ['Legion Y700', 'Motorola Edge 50', 'Motorola Razr 40', 'Lenovo Tab M10', 'Yoga Pad'];
+                $model = $f->faker()->randomElement($models);
+                return [
+                    'brand' => 'lenovo',
+                    'model' => $model,
+                    'region' => $f->faker()->randomElement(['WW', 'CN', 'IN', null]),
+                    'version' => $f->faker()->randomElement(['15.0', '14.0', '13.0', '12.0']),
+                    'build_number' => strtoupper($f->faker()->bothify('##??##')),
+                    'security_patch' => $f->faker()->randomElement(['2025-12-01', '2025-11-01', '2025-10-01']),
+                    'android_version' => '14',
+                    'firmware_type' => 'stock',
+                    'file_name' => 'Lenovo_' . str_replace(' ', '_', $model) . '_Unbrick.zip',
+                    'file_size' => $f->faker()->randomElement(['1.5GB', '1.8GB', '2.1GB', '2.5GB']),
+                    'file_hash' => $f->faker()->sha256(),
+                    'download_url' => 'https://mirrors.lolinet.com/firmware/lenovo/' . strtolower(str_replace(' ', '_', $model)) . '/factory.zip',
+                    'changelog' => '+ Lenovo unbrick firmware for ' . $model . "\n" .
+                                   '+ Stock ROM' . "\n" .
+                                   '+ Complete factory image' . "\n" .
+                                   '+ Fixes soft brick and bootloop',
+                    'status' => 'active',
+                    'download_count' => $f->faker()->numberBetween(2000, 20000),
+                    'rating' => $f->faker()->numberBetween(4, 5),
+                    'is_popular' => true,
+                    'is_recommended' => true,
+                    'imei_repair_supported' => true,
+                    'flash_mode_supported' => true,
+                    'adb_mode_supported' => true,
+                    'frp_remove_supported' => true,
+                    'camera_sms_working' => true,
+                    'ota_supported' => false,
+                    'factory_reset_safe' => true,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            });
+        
+        // ASUS devices
+        $this->factory(\GSMSDK\Models\Firmware::class)
+            ->count(8)
+            ->create(function (FirmwareFactory $f) {
+                $f->state([
+                    'brand' => 'asus',
+                    'model' => $f->faker()->randomElement(['Zenfone 10', 'ROG Phone 7', 'Zenfone 11', 'ROG Phone 8']),
+                    'firmware_type' => 'official',
+                    'region' => $f->faker()->randomElement(['WW', 'TW', null])
+                ]);
+            });
+        
+        // Sony devices
+        $this->factory(\GSMSDK\Models\Firmware::class)
+            ->count(8)
+            ->create(function (FirmwareFactory $f) {
+                $f->state([
+                    'brand' => 'sony',
+                    'model' => $f->faker()->randomElement(['Xperia 1 V', 'Xperia 10 V', 'Xperia 5 V', 'Xperia 1 VI']),
+                    'firmware_type' => 'official',
+                    'region' => null
+                ]);
+            });
+        
+        // Huawei devices
+        $this->factory(\GSMSDK\Models\Firmware::class)
+            ->count(8)
+            ->create(function (FirmwareFactory $f) {
+                $f->state([
+                    'brand' => 'huawei',
+                    'model' => $f->faker()->randomElement(['P60', 'Mate 50', 'Mate 60', 'P70', 'Nova 12']),
+                    'firmware_type' => 'official',
+                    'region' => 'CN'
+                ]);
+            });
+        
+        // OnePlus devices - comprehensive unbrick firmware
+        $this->factory(\GSMSDK\Models\Firmware::class)
+            ->count(40)
+            ->create(function (FirmwareFactory $f) {
+                $models = ['12', '12R', '11', '11R', '11T', '11T Pro', '10', '10R', '10T', '10T Pro',
+                           '9', '9R', '9RT', '8', '8T', '8 Pro', '7', '7T', '7T Pro', '6', '6T',
+                           'Nord 4', 'Nord 3', 'Nord 3T', 'Nord 2T', 'Nord 2', 'Nord CE 3', 'Nord CE 2',
+                           'Ace 3', 'Ace 2', 'Ace 2V', 'Ace 2 Pro', 'Open', 'N200', 'N100'];
+                $model = $f->faker()->randomElement($models);
+                $versions = ['14.0', '13.0', '12.0', '11.0', '10.0'];
+                $version = $f->faker()->randomElement($versions);
+                $region = $f->faker()->randomElement(['WW', 'CN', 'EU', 'IN', 'US', 'RU', null]);
+                
+                return [
+                    'brand' => 'oneplus',
+                    'model' => $model,
+                    'region' => $region,
+                    'version' => $version,
+                    'build_number' => strtoupper($f->faker()->bothify('##??##')),
+                    'security_patch' => $f->faker()->randomElement(['2025-12-01', '2025-11-01', '2025-10-01']),
+                    'android_version' => match(substr($version, 0, 2)) {
+                        '14' => '14', '13' => '13', '12' => '12', '11' => '11', '10' => '10', default => '13'
+                    },
+                    'firmware_type' => 'stock',
+                    'file_name' => 'OnePlus_' . $model . '_' . $version . '_Unbrick_' . ($region ?? 'WW') . '.zip',
+                    'file_size' => $f->faker()->randomElement(['1.8GB', '2.1GB', '2.5GB', '2.8GB', '3.2GB']),
+                    'file_hash' => $f->faker()->sha256(),
+                    'download_url' => 'https://onepluscommunityserver.com/list/Unbrick_Tools/' . $model . '/' . $version . '/unbrick_' . strtolower($model) . '_' . $version . '.zip',
+                    'changelog' => '+ Unbrick firmware for ' . $model . "\n" .
+                                   '+ Stock ROM ' . $version . "\n" .
+                                   '+ Complete factory image' . "\n" .
+                                   '+ Flash via Fastboot/ADB' . "\n" .
+                                   '+ Fixes bootloop and soft brick',
+                    'status' => 'active',
+                    'download_count' => $f->faker()->numberBetween(5000, 50000),
+                    'rating' => $f->faker()->numberBetween(4, 5),
+                    'is_popular' => true,
+                    'is_recommended' => true,
+                    'imei_repair_supported' => true,
+                    'flash_mode_supported' => true,
+                    'adb_mode_supported' => true,
+                    'frp_remove_supported' => true,
+                    'camera_sms_working' => true,
+                    'ota_supported' => false,
+                    'factory_reset_safe' => true,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            });
+        
+        // OPPO devices
+        $this->factory(\GSMSDK\Models\Firmware::class)
+            ->count(8)
+            ->create(function (FirmwareFactory $f) {
+                $f->state([
+                    'brand' => 'oppo',
+                    'model' => $f->faker()->randomElement(['Find X7', 'Reno 11', 'Reno 10', 'A3', 'A78']),
+                    'firmware_type' => 'official',
+                    'region' => $f->faker()->randomElement(['WW', 'CN', 'IN', null])
+                ]);
+            });
+        
+        // Vivo devices
+        $this->factory(\GSMSDK\Models\Firmware::class)
+            ->count(8)
+            ->create(function (FirmwareFactory $f) {
+                $f->state([
+                    'brand' => 'vivo',
+                    'model' => $f->faker()->randomElement(['X100', 'X90 Pro+', 'V40', 'Y100', 'V30']), 
+                    'firmware_type' => 'official',
+                    'region' => $f->faker()->randomElement(['WW', 'CN', 'IN', null])
+                ]);
+            });
+        
         // General firmware entries (various brands/models)
         $this->factory(\GSMSDK\Models\Firmware::class)
             ->count(25)

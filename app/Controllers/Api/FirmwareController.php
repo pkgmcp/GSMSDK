@@ -397,6 +397,79 @@ class FirmwareController {
     }
     
     /**
+     * Get Lenovo stock firmware
+     */
+    public function lenovoStock(Request $request): Response {
+        $firmware = Firmware::query()
+            ->where('brand', 'lenovo')
+            ->where('firmware_type', 'stock')
+            ->where('status', 'active')
+            ->orderBy('model')
+            ->get();
+        
+        return Response::json([
+            'success' => true,
+            'brand' => 'lenovo',
+            'type' => 'stock',
+            'count' => count($firmware),
+            'firmware' => array_map(fn($f) => $f->getDetails(), $firmware)
+        ]);
+    }
+    
+    /**
+     * Get Lenovo unbrick firmware
+     */
+    public function lenovoUnbrick(Request $request): Response {
+        $firmware = Firmware::lenovoUnbrick();
+        
+        return Response::json([
+            'success' => true,
+            'brand' => 'lenovo',
+            'type' => 'unbrick',
+            'count' => count($firmware),
+            'source' => 'https://mirrors.lolinet.com/firmware/',
+            'firmware' => array_map(fn($f) => $f->getDetails(), $firmware)
+        ]);
+    }
+    
+    /**
+     * Get OnePlus unbrick firmware
+     */
+    public function oneplusUnbrick(Request $request): Response {
+        $firmware = Firmware::oneplusUnbrick();
+        
+        return Response::json([
+            'success' => true,
+            'brand' => 'oneplus',
+            'type' => 'unbrick',
+            'count' => count($firmware),
+            'source' => 'https://onepluscommunityserver.com/list/Unbrick_Tools/',
+            'firmware' => array_map(fn($f) => $f->getDetails(), $firmware)
+        ]);
+    }
+    
+    /**
+     * Get OnePlus stock firmware
+     */
+    public function oneplusStock(Request $request): Response {
+        $firmware = Firmware::query()
+            ->where('brand', 'oneplus')
+            ->where('firmware_type', 'stock')
+            ->where('status', 'active')
+            ->orderBy('model')
+            ->orderBy('version', 'desc')
+            ->get();
+        
+        return Response::json([
+            'success' => true,
+            'brand' => 'oneplus',
+            'type' => 'stock',
+            'count' => count($firmware),
+            'firmware' => array_map(fn($f) => $f->getDetails(), $firmware)
+        ]);
+    }
+    
+    /**
      * Download firmware
      */
     public function download(Request $request, int $id): Response {

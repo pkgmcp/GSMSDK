@@ -213,43 +213,12 @@ class Firmware extends Model {
     }
     
     /**
-     * Get firmware by IMEI repair support
-     */
-    public static function imeiRepairSupported(): array {
-        return self::query()
-            ->where('imei_repair_supported', true)
-            ->where('status', 'active')
-            ->get();
-    }
-    
-    /**
-     * Get firmware by FRP remove support
-     */
-    public static function frpRemoveSupported(): array {
-        return self::query()
-            ->where('frp_remove_supported', true)
-            ->where('status', 'active')
-            ->get();
-    }
-    
-    /**
      * Get firmware by type
      */
     public static function byType(string $type): array {
         return self::query()
             ->where('firmware_type', $type)
             ->where('status', 'active')
-            ->get();
-    }
-    
-    /**
-     * Get firmware with security patch >= date
-     */
-    public static function withSecurityPatch(string $patchDate): array {
-        return self::query()
-            ->where('security_patch', '>=', $patchDate)
-            ->where('status', 'active')
-            ->orderBy('security_patch', 'desc')
             ->get();
     }
     
@@ -265,6 +234,37 @@ class Firmware extends Model {
     }
     
     /**
+     * Get firmware with IMEI repair support
+     */
+    public static function imeiRepairSupported(): array {
+        return self::query()
+            ->where('imei_repair_supported', true)
+            ->where('status', 'active')
+            ->get();
+    }
+    
+    /**
+     * Get firmware with FRP remove support
+     */
+    public static function frpRemoveSupported(): array {
+        return self::query()
+            ->where('frp_remove_supported', true)
+            ->where('status', 'active')
+            ->get();
+    }
+    
+    /**
+     * Get firmware by Android version
+     */
+    public static function latestByAndroidVersion(string $androidVersion): array {
+        return self::query()
+            ->where('android_version', 'LIKE', $androidVersion . '%')
+            ->where('status', 'active')
+            ->orderBy('version', 'desc')
+            ->get();
+    }
+    
+    /**
      * Get all brands
      */
     public static function getAllBrands(): array {
@@ -274,7 +274,8 @@ class Firmware extends Model {
             ->where('status', 'active')
             ->orderBy('brand')
             ->get()
-            ->pluck('brand');
+            ->pluck('brand')
+            ->toArray();
     }
     
     /**
@@ -288,7 +289,8 @@ class Firmware extends Model {
             ->where('status', 'active')
             ->orderBy('model')
             ->get()
-            ->pluck('model');
+            ->pluck('model')
+            ->toArray();
     }
     
     /**
@@ -308,13 +310,55 @@ class Firmware extends Model {
     }
     
     /**
-     * Get latest firmware by Android version
+     * Get Lenovo unbrick firmware
      */
-    public static function latestByAndroidVersion(string $androidVersion): array {
+    public static function lenovoUnbrick(): array {
         return self::query()
-            ->where('android_version', 'LIKE', $androidVersion . '%')
+            ->where('brand', 'lenovo')
+            ->where('firmware_type', 'stock')
             ->where('status', 'active')
+            ->orderBy('model')
+            ->get();
+    }
+    
+    /**
+     * Get OnePlus unbrick firmware
+     */
+    public static function oneplusUnbrick(): array {
+        return self::query()
+            ->where('brand', 'oneplus')
+            ->where('firmware_type', 'stock')
+            ->where('status', 'active')
+            ->orderBy('model')
             ->orderBy('version', 'desc')
+            ->get();
+    }
+    
+    /**
+     * Get stock firmware
+     */
+    public static function stockFirmware(): array {
+        return self::query()
+            ->where('firmware_type', 'stock')
+            ->where('status', 'active')
+            ->orderBy('brand')
+            ->orderBy('model')
+            ->get();
+    }
+    
+    /**
+     * Get unbrick capable firmware
+     */
+    public static function unbrickCapable(): array {
+        return self::query()
+            ->where(function ($query) {
+                $query->where('firmware_type', 'stock')
+                      ->orWhere('imei_repair_supported', true)
+                      ->orWhere('frp_remove_supported', true);
+            })
+            ->where('status', 'active')
+            ->orderBy('brand')
+            ->orderBy('model')
             ->get();
     }
 }
