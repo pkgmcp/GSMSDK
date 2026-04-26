@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace GSMSDK\Core;
 
 use GSMSDK\Contracts\ContainerInterface;
+use GSMSDK\Core\AI\AiRouter;
 use GSMSDK\Exceptions\ConfigurationException;
 use GSMSDK\Traits\Macroable;
 use Stringable;
@@ -21,280 +22,148 @@ readonly class Application implements ContainerInterface, Stringable
 {
     use Macroable;
 
-    /** @var string Framework version */
-    public const VERSION = '1.0.0';
+    /** @var array<string, callable|mixed> Registered services */
+    private array $services = [];
 
-    /** @var array<string, mixed> Runtime configuration */
+    /** @var array<string, mixed> Cached instantiated services */
+    private array $resolved = [];
+
+    /** @var array<string, mixed> Application configuration */
     private array $config;
 
-    /** @var array<string, object> Service bindings */
-    private array $bindings = [];
-
-    /** @var array<string, bool> Booted services */
-    private array $booted = [];
+    /** @var ?AiRouter AI Router instance */
+    private ?AiRouter $aiRouter = null;
 
     /**
-     * Initialize application with configuration
-     *
      * @param  array<string, mixed>  $config  Application configuration
      */
     public function __construct(array $config = [])
     {
-        $this->config = array_merge($this->defaultConfig(), $config);
-        $this->bootstrap();
-    }
-
-    /**
-     * Get default framework configuration
-     *
-     * @return array<string, mixed>
-     */
-    private function defaultConfig(): array
-    {
-        return [
-            'debug' => true,
-            'timezone' => 'UTC',
-            'charset' => 'UTF-8',
+        $this->config = array_merge([
+            'debug' => false,
             'environment' => 'production',
             'paths' => [
                 'base' => dirname(__DIR__, 2),
-                'config' => 'config',
-                'storage' => 'storage',
-                'cache' => 'storage/cache',
-                'logs' => 'storage/logs',
+                'views' => dirname(__DIR__, 2) . '/resources/views',
+                'controllers' => dirname(__DIR__, 2) . '/app/Controllers',
             ],
-            'services' => [],
-            'providers' => [],
-        ];
+            'app' => [
+                'name' => 'GSMSDK',
+                'url' => 'http://localhost:8000',
+                'version' => '2.0.0',
+            ],
+            'database' => [
+                'driver' => 'sqlite',
+                'database' => ':memory:',
+            ],
+            'api' => [
+                'rate_limit' => 100,
+                'rate_window' => 60,
+                'throttle' => true,
+                'cache' => true,
+                'cache_ttl' => 300,
+            ],
+        ], $config);
+
+        $this->setupDirectories();
+        $this->setupDatabase();
+        $this->registerCoreServices();
     }
 
-    /**
-     * Bootstrap core framework components
-     */
-    private function bootstrap(): void
+    private function setupDirectories(): void
     {
-        $this->registerErrorHandling();
-        $this->registerTimezone();
-        $this->registerCoreBindings();
-    }
-
-    /**
-     * Register error and exception handling
-     */
-    private function registerErrorHandling(): void
-    {
-        if ($this->config['debug']) {
-            error_reporting(E_ALL);
-            ini_set('display_errors', '1');
-        } else {
-            error_reporting(E_ERROR | E_PARSE);
-            ini_set('display_errors', '0');
-        }
-
-        set_exception_handler([$this, 'handleException']);
-        set_error_handler([$this, 'handleError']);
-    }
-
-    /**
-     * Register timezone settings
-     */
-    private function registerTimezone(): void
-    {
-        date_default_timezone_set($this->config['timezone']);
-    }
-
-    /**
-     * Register core service bindings
-     */
-    private function registerCoreBindings(): void
-    {
-        $this->bind('config', fn() => $this->config);
-        $this->bind('app', fn() => $this);
-    }
-
-    /**
-     * Handle uncaught exceptions
-     *
-     * @param  \Throwable  $e  Exception to handle
-     */
-    public function handleException(\Throwable $e): void
-    {
-        $this->logError($e);
-
-        if ($this->config['debug']) {
-            $this->renderDebugException($e);
-        } else {
-            $this->renderProductionException();
+        $storagePath = $this->storagePath();
+        $directories = [$storagePath, $storagePath . '/cache', $storagePath . '/logs', $storagePath . '/sessions'];
+        foreach ($directories as $dir) {
+            if (!is_dir($dir)) { mkdir($dir, 0755, true); }
         }
     }
 
-    /**
-     * Handle PHP errors
-     */
-    public function handleError(int $errno, string $errstr, string $errfile, int $errline): bool
+    private function setupDatabase(): void
     {
-        if (!(error_reporting() & $errno)) {
-            return false;
-        }
-
-        throw new \ErrorException($errstr, 0, $errno, $errfile, $errline);
+        if ($this->config['database']['driver'] !== 'sqlite') { return; }
+        $dbFile = $this->storagePath() . '/database.sqlite';
+        $this->config['database']['database'] = $dbFile;
+        if (!file_exists($dbFile)) { touch($dbFile); }
     }
 
-    /**
-     * Log exception to storage
-     */
-    private function logError(\Throwable $e): void
+    private function registerCoreServices(): void
     {
-        $logPath = $this->config['paths']['logs'] . '/error.log';
-        $message = sprintf(
-            "[%s] %s in %s:%d\nStack trace:\n%s\n\n",
-            date('Y-m-d H:i:s'),
-            $e->getMessage(),
-            $e->getFile(),
-            $e->getLine(),
-            $e->getTraceAsString()
-        );
-
-        @file_put_contents($logPath, $message, FILE_APPEND | LOCK_EX);
+        $this->services[Application::class] = $this;
+        $this->services[ContainerInterface::class] = $this;
+        $this->services['auth'] = fn() => new \GSMSDK\Core\Auth\AuthManager($this);
+        $this->services['view'] = fn() => new \GSMSDK\Core\View($this->config['paths']['views'], $this->config['paths']['views'] . '/layouts');
+        $this->services['aiRouter'] = fn() => new AiRouter($this);
     }
 
-    /**
-     * Render detailed debug exception
-     */
-    private function renderDebugException(\Throwable $e): void
-    {
-        http_response_code(500);
-        header('Content-Type: application/json');
-        echo json_encode([
-            'error' => true,
-            'message' => $e->getMessage(),
-            'file' => $e->getFile(),
-            'line' => $e->getLine(),
-            'trace' => $e->getTrace(),
-            'code' => $e->getCode(),
-        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
-    }
-
-    /**
-     * Render production-safe exception
-     */
-    private function renderProductionException(): void
-    {
-        http_response_code(500);
-        header('Content-Type: application/json');
-        echo json_encode([
-            'error' => true,
-            'message' => 'An internal error occurred.',
-            'code' => 500,
-        ]);
-    }
-
-    /**
-     * Bind a service to the container
-     *
-     * @template T
-     * @param  class-string<T>|string  $abstract  Service identifier
-     * @param  callable():T|object     $concrete  Factory or instance
-     */
-    public function bind(string $abstract, callable|object $concrete): void
-    {
-        $this->bindings[$abstract] = $concrete;
-    }
-
-    /**
-     * Resolve a service from the container
-     *
-     * @template T
-     * @param  class-string<T>|string  $abstract  Service identifier
-     * @return T Resolved service instance
-     */
-    public function make(string $abstract): mixed
-    {
-        if (isset($this->bindings[$abstract])) {
-            $concrete = $this->bindings[$abstract];
-            return $concrete instanceof \Closure ? $concrete($this) : $concrete;
-        }
-
-        if (class_exists($abstract)) {
-            return new $abstract();
-        }
-
-        throw new ConfigurationException("Service not found: {$abstract}");
-    }
-
-    /**
-     * Check if a service is bound
-     */
-    public function bound(string $abstract): bool
-    {
-        return isset($this->bindings[$abstract]) || class_exists($abstract);
-    }
-
-    /**
-     * Boot a service provider
-     */
-    public function boot(string $provider): void
-    {
-        if (isset($this->booted[$provider])) {
-            return;
-        }
-
-        if (class_exists($provider) && method_exists($provider, 'boot')) {
-            (new $provider($this))->boot();
-            $this->booted[$provider] = true;
-        }
-    }
-
-    /**
-     * Get configuration value
-     *
-     * @param  string  $key  Dot-notation key
-     * @param  mixed   $default  Default value if key not found
-     * @return mixed
-     */
     public function config(string $key, mixed $default = null): mixed
     {
+        $keys = explode('.', $key);
         $value = $this->config;
-
-        foreach (explode('.', $key) as $segment) {
-            if (!is_array($value) || !array_key_exists($segment, $value)) {
-                return $default;
-            }
-            $value = $value[$segment];
+        foreach ($keys as $k) {
+            if (!isset($value[$k])) { return $default; }
+            $value = $value[$k];
         }
-
         return $value;
     }
 
-    /**
-     * Get framework version
-     */
-    public function version(): string
+    public function storagePath(): string { return $this->config['paths']['base'] . '/storage'; }
+    public function version(): string { return $this->config['app']['version'] ?? '2.0.0'; }
+    public function environment(): string { return $this->config['environment'] ?? 'production'; }
+
+    public function aiRouter(): AiRouter
     {
-        return self::VERSION;
+        if ($this->aiRouter === null) { $this->aiRouter = $this->get('aiRouter'); }
+        return $this->aiRouter;
     }
 
-    /**
-     * Get application environment
-     */
-    public function environment(): string
+    public function run(): void { $mvc = new MvcApplication($this); $mvc->run(); }
+
+    public function runApi(): void { $api = new \GSMSDK\Core\Api\ApiApplication($this); $api->run(); }
+    public function basePath(): string { return $this->config['paths']['base']; }
+    public function viewPath(): string { return $this->config['paths']['views']; }
+
+    public function get(string $id): mixed
     {
-        return $this->config['environment'];
+        if (isset($this->resolved[$id])) { return $this->resolved[$id]; }
+        if (isset($this->services[$id])) {
+            $factory = $this->services[$id];
+            return $this->resolved[$id] = $factory($this);
+        }
+        throw new ConfigurationException("Service not found: {$id}");
     }
 
-    /**
-     * Check if running in console/CLI mode
-     */
-    public function runningInConsole(): bool
+    public function has(string $id): bool { return isset($this->services[$id]); }
+    public function set(string $id, callable|mixed $factory): void { $this->services[$id] = $factory; unset($this->resolved[$id]); }
+    public function bind(string $interface, string $concrete): void { $this->services[$interface] = fn() => new $concrete($this); }
+    public function singleton(string $id, callable $factory): void
     {
-        return PHP_SAPI === 'cli' || PHP_SAPI === 'phpdbg';
+        $this->services[$id] = function () use ($factory, $id) {
+            if (!isset($this->resolved[$id])) { $this->resolved[$id] = $factory($this); }
+            return $this->resolved[$id];
+        };
     }
 
-    /**
-     * String representation
-     */
+    public function make(string $class, array $parameters = []): mixed
+    {
+        $reflection = new \ReflectionClass($class);
+        if (!$reflection->isInstantiable()) { throw new ConfigurationException("Class {$class} is not instantiable"); }
+        $constructor = $reflection->getConstructor();
+        if (!$constructor) { return new $class(); }
+        $args = [];
+        foreach ($constructor->getParameters() as $param) {
+            if (array_key_exists($param->getName(), $parameters)) { $args[] = $parameters[$param->getName()]; }
+            elseif ($param->getType() && !$param->getType()->isBuiltin()) {
+                $typeName = $param->getType()->getName();
+                $args[] = $this->has($typeName) ? $this->get($typeName) : null;
+            } elseif ($param->isDefaultValueAvailable()) { $args[] = $param->getDefaultValue(); }
+            else { $args[] = null; }
+        }
+        return $reflection->newInstanceArgs($args);
+    }
+
     public function __toString(): string
     {
-        return sprintf('GSMSDK v%s [%s]', $this->version(), $this->environment());
+        return sprintf('GSMSDK Application v%s (%s environment)', $this->version(), $this->environment());
     }
 }
